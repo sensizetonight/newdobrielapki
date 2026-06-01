@@ -6,854 +6,207 @@
     <title>{{ title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/modals.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/analytics.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        :root {
-            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-success: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --gradient-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-        }
-
-        .analytics-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .dashboard-header {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 2.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-        }
-
-        .dashboard-header h1 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 0;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: var(--shadow-lg);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--gradient-primary);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-xl);
-        }
-
-        .stat-card.income::before {
-            background: var(--gradient-success);
-        }
-
-        .stat-card.expense::before {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .stat-card.balance::before {
-            background: var(--gradient-info);
-        }
-
-        .stat-card.forecast::before {
-            background: var(--gradient-warning);
-        }
-
-        .stat-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .stat-card-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .stat-card-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            background: var(--gradient-primary);
-            color: white;
-        }
-
-        .stat-card-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #2d3748;
-            margin: 0.5rem 0;
-        }
-
-        .stat-card-change {
-            font-size: 0.875rem;
-            color: #48bb78;
-            font-weight: 600;
-        }
-
-        .stat-card-change.negative {
-            color: #f56565;
-        }
-
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .chart-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 2rem;
-        }
-
-        .chart-card h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .chart-card h2 i {
-            color: #667eea;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-
-        .table-card {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 2.5rem;
-        }
-
-        .table-card h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .table-card h2 i {
-            color: #667eea;
-        }
-
-        .modern-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .modern-table thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .modern-table th {
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .modern-table tbody tr {
-            border-bottom: 1px solid #e2e8f0;
-            transition: background 0.2s ease;
-        }
-
-        .modern-table tbody tr:hover {
-            background: #f7fafc;
-        }
-
-        .modern-table td {
-            padding: 1rem;
-            color: #4a5568;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .badge-success {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        .badge-warning {
-            background: #feebc8;
-            color: #7c2d12;
-        }
-
-        .badge-info {
-            background: #bee3f8;
-            color: #2c5282;
-        }
-
-        .filter-buttons {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 0;
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            padding: 0.5rem 1rem;
-            border: 2px solid #e2e8f0;
-            background: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-            color: #4a5568;
-        }
-
-        .filter-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
-        }
-
-        .filter-btn.active {
-            background: var(--gradient-primary);
-            border-color: transparent;
-            color: white;
-        }
-
-        @media (max-width: 768px) {
-            .analytics-container {
-                padding: 0.5rem !important;
-                margin: 1rem auto !important;
-            }
-
-            .charts-grid {
-                grid-template-columns: 1fr !important;
-                gap: 1rem !important;
-            }
-
-            .dashboard-header {
-                flex-direction: column;
-                gap: 1rem;
-                padding: 1rem !important;
-            }
-
-            .dashboard-header h1 {
-                font-size: 1.5rem !important;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr !important;
-                gap: 1rem !important;
-            }
-
-            .stat-card {
-                padding: 1.5rem !important;
-            }
-
-            .stat-card-value {
-                font-size: 2rem !important;
-            }
-
-            .chart-container {
-                height: 250px !important;
-            }
-
-            .table-card {
-                padding: 1rem !important;
-                overflow-x: auto;
-            }
-
-            .modern-table {
-                font-size: 0.75rem !important;
-                min-width: 600px;
-            }
-
-            .filter-buttons {
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-
-            .filter-btn {
-                flex: 1;
-                min-width: 80px;
-            }
-        }
-    </style>
 </head>
-<body>
+<body class="analytics-page">
     <header>
         <button class="menu-toggle" id="menuToggle" aria-label="Меню">
-            <span></span>
-            <span></span>
-            <span></span>
+            <span></span><span></span><span></span>
         </button>
         <h1>Добрые Лапки</h1>
         <nav>
             <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> Главная</a>
             <a href="{{ url_for('animals') }}" class="nav-button"><i class="fas fa-paw"></i> Животные</a>
             <a href="{{ url_for('map') }}" class="nav-button"><i class="fas fa-map"></i> Карта</a>
-            <a href="{{ url_for('contact') }}" class="nav-button"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('contact') }}" class="nav-button"><i class="fas fa-envelope"></i> Связаться</a>
             <a href="{{ url_for('donate') }}" class="nav-button"><i class="fas fa-heart"></i> Пожертвовать</a>
-            {% if current_user.is_authenticated and current_user.role == 'admin' %}
-            <a href="{{ url_for('admin_dashboard') }}" class="nav-button"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button"><i class="fas fa-user-shield"></i> Админ</a>
             <a href="{{ url_for('analytics_dashboard') }}" class="nav-button active"><i class="fas fa-chart-line"></i> Аналитика</a>
-            {% endif %}
         </nav>
         <div class="auth-links">
             {% if current_user.is_authenticated %}
-                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <span>{{ current_user.username }}</span>
                 <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
-                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
             {% endif %}
         </div>
     </header>
+
     <div class="mobile-menu" id="mobileMenu">
         <nav>
-            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
-            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
-            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
-            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
-            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
-            {% if current_user.is_authenticated and current_user.role == 'admin' %}
-            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
-            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
-            {% endif %}
+            <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button"><i class="fas fa-user-shield"></i> Админ</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button active"><i class="fas fa-chart-line"></i> Аналитика</a>
         </nav>
-        <div class="auth-links">
-            {% if current_user.is_authenticated %}
-                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
-                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
-                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
-            {% endif %}
-        </div>
     </div>
 
-    <main class="analytics-container">
-        <div class="dashboard-header">
-            <h1><i class="fas fa-chart-line"></i> Аналитический дашборд</h1>
-            <div class="filter-buttons">
-                <button class="filter-btn" onclick="updateCharts(7, event)">7 дней</button>
-                <button class="filter-btn active" onclick="updateCharts(30, event)">30 дней</button>
-                <button class="filter-btn" onclick="updateCharts(90, event)">90 дней</button>
+    <main class="analytics-wrap">
+        <header class="dash-hero">
+            <div>
+                <h1>
+                    Аналитический центр
+                    <span>KPI, прогнозы и оперативные показатели приюта</span>
+                </h1>
             </div>
-        </div>
-
-        <!-- Статистические карточки -->
-        <div class="stats-grid">
-            <div class="stat-card income">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Общие доходы</span>
-                    <div class="stat-card-icon">
-                        <i class="fas fa-ruble-sign"></i>
-                    </div>
+            <div class="dash-controls">
+                <div class="dash-pill">
+                    <button type="button" data-horizon="3" class="active">3 мес.</button>
+                    <button type="button" data-horizon="6">6 мес.</button>
                 </div>
-                <div class="stat-card-value">{{ financial_summary.total_donations }} ₽</div>
-                <div class="stat-card-change">
-                    <i class="fas fa-arrow-up"></i> За месяц: {{ financial_summary.monthly_donations }} ₽
+                <div class="dash-pill">
+                    <button type="button" data-days="7">7 дн.</button>
+                    <button type="button" data-days="30" class="active">30 дн.</button>
+                    <button type="button" data-days="90">90 дн.</button>
                 </div>
             </div>
+        </header>
 
-            <div class="stat-card expense">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Общие расходы</span>
-                    <div class="stat-card-icon">
-                        <i class="fas fa-shopping-cart"></i>
-                    </div>
-                </div>
-                <div class="stat-card-value">{{ financial_summary.total_expenses }} ₽</div>
-                <div class="stat-card-change negative">
-                    <i class="fas fa-arrow-down"></i> За месяц: {{ financial_summary.monthly_expenses }} ₽
-                </div>
-            </div>
+        <div id="insightStrip" class="insight-strip is-empty"></div>
 
-            <div class="stat-card balance">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Баланс</span>
-                    <div class="stat-card-icon">
-                        <i class="fas fa-wallet"></i>
-                    </div>
+        <div class="kpi-grid">
+            {% for k in kpis %}
+            <article class="kpi-card">
+                <div class="kpi-top">
+                    <span class="kpi-label">{{ k.label }}</span>
+                    <div class="kpi-icon"><i class="fas {{ k.icon }}"></i></div>
                 </div>
-                <div class="stat-card-value {% if financial_summary.balance < 0 %}negative{% endif %}">
-                    {{ financial_summary.balance }} ₽
-                </div>
-                <div class="stat-card-change {% if financial_summary.monthly_balance < 0 %}negative{% endif %}">
-                    <i class="fas fa-{% if financial_summary.monthly_balance >= 0 %}arrow-up{% else %}arrow-down{% endif %}"></i> 
-                    За месяц: {{ financial_summary.monthly_balance }} ₽
-                </div>
-            </div>
-
-            <div class="stat-card forecast">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Прогноз на 3 месяца</span>
-                    <div class="stat-card-icon">
-                        <i class="fas fa-crystal-ball"></i>
-                    </div>
-                </div>
-                <div class="stat-card-value">
-                    {% if forecast %}
-                        {{ forecast|sum(attribute='predicted_cost')|round(2) }} ₽
+                <div class="kpi-value {% if k.trend == 'down' %}negative{% elif k.id == 'balance' and k.value >= 0 %}positive{% endif %}"
+                     {% if k.id == 'balance' %}id="kpi-balance-value" data-monthly="{{ financial_summary.monthly_balance }}"{% endif %}>
+                    {% if k.id in ['donations', 'expenses', 'balance'] %}
+                        {{ k.value|round(0)|int }} ₽
                     {% else %}
-                        Н/Д
+                        {{ k.value|int }}
                     {% endif %}
                 </div>
-                <div class="stat-card-change">
-                    <i class="fas fa-info-circle"></i> Прогнозируемые расходы
-                </div>
-            </div>
+                <div class="kpi-sub">{{ k.sub }}</div>
+            </article>
+            {% endfor %}
         </div>
 
-        <!-- Графики -->
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h2><i class="fas fa-chart-area"></i> Динамика пожертвований</h2>
-                <div class="chart-container">
-                    <canvas id="donationsChart"></canvas>
+        <section class="dash-section">
+            <div class="section-head">
+                <h2><i class="fas fa-chart-line"></i> Прогнозы</h2>
+            </div>
+            <div class="forecast-legend">
+                <span><i class="legend-fact"></i> Факт</span>
+                <span><i class="legend-pred"></i> Прогноз</span>
+            </div>
+            <div class="charts-row charts-row--forecast">
+                <div class="chart-panel span-6">
+                    <h3>Пожертвования</h3>
+                    <div class="chart-box"><canvas id="chartDonationsForecast"></canvas></div>
+                </div>
+                <div class="chart-panel span-6">
+                    <h3>Расходы</h3>
+                    <div class="chart-box"><canvas id="chartExpensesForecast"></canvas></div>
+                </div>
+                <div class="chart-panel span-6">
+                    <h3>Баланс</h3>
+                    <div class="chart-box"><canvas id="chartBalanceForecast"></canvas></div>
+                </div>
+                <div class="chart-panel span-6">
+                    <h3>Усыновления</h3>
+                    <div class="chart-box"><canvas id="chartAdoptionsForecast"></canvas></div>
                 </div>
             </div>
+        </section>
 
-            <div class="chart-card">
-                <h2><i class="fas fa-chart-bar"></i> Тренды усыновлений</h2>
-                <div class="chart-container">
-                    <canvas id="adoptionsChart"></canvas>
+        <section class="dash-section">
+            <div class="section-head">
+                <h2><i class="fas fa-bolt"></i> Оперативная аналитика</h2>
+            </div>
+            <div class="charts-row">
+                <div class="chart-panel span-8">
+                    <h3>Пожертвования по дням</h3>
+                    <div class="chart-box"><canvas id="donationsChart"></canvas></div>
+                </div>
+                <div class="chart-panel span-4">
+                    <h3>Инвентарь</h3>
+                    <div class="chart-box"><canvas id="inventoryChart"></canvas></div>
+                </div>
+                <div class="chart-panel span-8">
+                    <h3>Заявки на усыновление</h3>
+                    <div class="chart-box"><canvas id="adoptionsChart"></canvas></div>
+                </div>
+                <div class="chart-panel span-4">
+                    <h3>Питомцы по статусу</h3>
+                    <div class="chart-box"><canvas id="animalChart"></canvas></div>
                 </div>
             </div>
+        </section>
 
-            <div class="chart-card">
-                <h2><i class="fas fa-chart-pie"></i> Анализ инвентаря по категориям</h2>
-                <div class="chart-container">
-                    <canvas id="inventoryChart"></canvas>
+        <script type="application/json" id="animal-stats-data">{{ animal_stats|tojson }}</script>
+
+        <section class="dash-section">
+            <div class="section-head"><h2><i class="fas fa-table"></i> Детализация</h2></div>
+            <div class="charts-row">
+                <div class="chart-panel span-6">
+                    <h3>Животные</h3>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Статус</th><th>Кол-во</th><th>%</th></tr></thead>
+                            <tbody>
+                                {% set total = animal_stats|sum(attribute='count') %}
+                                {% for stat in animal_stats %}
+                                <tr>
+                                    <td><span class="badge-a info">{{ stat.status }}</span></td>
+                                    <td><strong>{{ stat.count }}</strong></td>
+                                    <td>{% if total > 0 %}{{ ((stat.count / total) * 100)|round(1) }}%{% else %}0%{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="chart-panel span-6">
+                    <h3>Пожертвования по типам</h3>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Тип</th><th>Шт.</th><th>Сумма</th><th>Среднее</th></tr></thead>
+                            <tbody>
+                                {% for cat in donation_categories %}
+                                <tr>
+                                    <td><span class="badge-a warn">{{ 'На приют' if cat.donation_type == 'shelter' else 'На животное' }}</span></td>
+                                    <td>{{ cat.count }}</td>
+                                    <td><strong>{{ cat.total|round(0) }} ₽</strong></td>
+                                    <td>{{ cat.avg|round(0) }} ₽</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="chart-panel span-12">
+                    <h3>Инвентарь</h3>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Категория</th><th>Позиций</th><th>Кол-во</th><th>Стоимость</th><th>Ср. цена</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventory_analysis %}
+                                <tr>
+                                    <td><span class="badge-a ok">{{ {'food':'Корм','medicine':'Лекарства','supplies':'Принадлежности','other':'Прочее'}[item.category] }}</span></td>
+                                    <td>{{ item.item_count }}</td>
+                                    <td>{{ item.total_quantity|round(1) }}</td>
+                                    <td><strong>{{ item.total_value|round(0) }} ₽</strong></td>
+                                    <td>{{ item.avg_price|round(0) }} ₽</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            <div class="chart-card">
-                <h2><i class="fas fa-chart-line"></i> Прогноз затрат</h2>
-                <div class="chart-container">
-                    <canvas id="forecastChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Таблицы -->
-        <div class="table-card">
-            <h2><i class="fas fa-table"></i> Статистика по животным</h2>
-            <table class="modern-table">
-                <thead>
-                    <tr>
-                        <th>Статус</th>
-                        <th>Количество</th>
-                        <th>Процент</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for stat in animal_stats %}
-                    <tr>
-                        <td><span class="badge badge-info">{{ stat.status }}</span></td>
-                        <td><strong>{{ stat.count }}</strong></td>
-                        <td>
-                            {% set total = animal_stats|sum(attribute='count') %}
-                            {% if total > 0 %}
-                                {{ ((stat.count / total) * 100)|round(1) }}%
-                            {% else %}
-                                0%
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="table-card">
-            <h2><i class="fas fa-boxes"></i> Анализ инвентаря</h2>
-            <table class="modern-table">
-                <thead>
-                    <tr>
-                        <th>Категория</th>
-                        <th>Количество позиций</th>
-                        <th>Общее количество</th>
-                        <th>Общая стоимость</th>
-                        <th>Средняя цена</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in inventory_analysis %}
-                    <tr>
-                        <td>
-                            <span class="badge badge-success">
-                                {{ {'food': 'Корм', 'medicine': 'Лекарства', 'supplies': 'Принадлежности', 'other': 'Прочее'}[item.category] }}
-                            </span>
-                        </td>
-                        <td><strong>{{ item.item_count }}</strong></td>
-                        <td>{{ item.total_quantity|round(2) }}</td>
-                        <td><strong>{{ item.total_value|round(2) }} ₽</strong></td>
-                        <td>{{ item.avg_price|round(2) }} ₽</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="table-card">
-            <h2><i class="fas fa-heart"></i> Анализ пожертвований по типам</h2>
-            <table class="modern-table">
-                <thead>
-                    <tr>
-                        <th>Тип пожертвования</th>
-                        <th>Количество</th>
-                        <th>Общая сумма</th>
-                        <th>Средняя сумма</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cat in donation_categories %}
-                    <tr>
-                        <td>
-                            <span class="badge badge-warning">
-                                {{ 'На приют' if cat.donation_type == 'shelter' else 'На животное' }}
-                            </span>
-                        </td>
-                        <td><strong>{{ cat.count }}</strong></td>
-                        <td><strong>{{ cat.total|round(2) }} ₽</strong></td>
-                        <td>{{ cat.avg|round(2) }} ₽</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        </section>
     </main>
 
-    <footer>
-        <p>© 2025 Добрые Лапки. Все права защищены.</p>
-    </footer>
+    <footer><p>© 2025 Добрые Лапки</p></footer>
 
-    <script>
-        let donationsChart, adoptionsChart, inventoryChart, forecastChart;
-        let currentDays = 30;
-
-        // Инициализация графиков
-        function initCharts() {
-            // График пожертвований
-            const donationsCtx = document.getElementById('donationsChart').getContext('2d');
-            donationsChart = new Chart(donationsCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Сумма пожертвований (₽)',
-                        data: [],
-                        borderColor: 'rgb(102, 126, 234)',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-
-            // График усыновлений
-            const adoptionsCtx = document.getElementById('adoptionsChart').getContext('2d');
-            adoptionsChart = new Chart(adoptionsCtx, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'Одобрено',
-                            data: [],
-                            backgroundColor: 'rgba(72, 187, 120, 0.8)'
-                        },
-                        {
-                            label: 'В ожидании',
-                            data: [],
-                            backgroundColor: 'rgba(246, 173, 85, 0.8)'
-                        },
-                        {
-                            label: 'Отклонено',
-                            data: [],
-                            backgroundColor: 'rgba(245, 101, 101, 0.8)'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-
-            // График инвентаря
-            const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
-            inventoryChart = new Chart(inventoryCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: [
-                            'rgba(102, 126, 234, 0.8)',
-                            'rgba(72, 187, 120, 0.8)',
-                            'rgba(246, 173, 85, 0.8)',
-                            'rgba(245, 101, 101, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'right'
-                        }
-                    }
-                }
-            });
-
-            // График прогноза
-            const forecastCtx = document.getElementById('forecastChart').getContext('2d');
-            forecastChart = new Chart(forecastCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Прогнозируемые затраты (₽)',
-                        data: [],
-                        borderColor: 'rgb(250, 112, 154)',
-                        backgroundColor: 'rgba(250, 112, 154, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-
-            updateCharts(30);
-        }
-
-        function updateCharts(days, event) {
-            currentDays = days;
-            
-            // Обновить активную кнопку
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.textContent.match(/\d+/)?.[0] || '0') === days) {
-                    btn.classList.add('active');
-                }
-            });
-            if (event && event.target) {
-                event.target.classList.add('active');
-            }
-
-            // Загрузить данные пожертвований
-            fetch(`/api/analytics/donations-timeline?days=${days}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        donationsChart.data.labels = data.map(d => d.date);
-                        donationsChart.data.datasets[0].data = data.map(d => d.total || 0);
-                    } else {
-                        donationsChart.data.labels = [];
-                        donationsChart.data.datasets[0].data = [];
-                    }
-                    donationsChart.update();
-                })
-                .catch(err => console.error('Error loading donations:', err));
-
-            // Загрузить данные усыновлений
-            fetch(`/api/analytics/adoption-trends?days=${days}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        adoptionsChart.data.labels = data.map(d => d.date);
-                        adoptionsChart.data.datasets[0].data = data.map(d => d.approved || 0);
-                        adoptionsChart.data.datasets[1].data = data.map(d => d.pending || 0);
-                        adoptionsChart.data.datasets[2].data = data.map(d => d.rejected || 0);
-                    } else {
-                        adoptionsChart.data.labels = [];
-                        adoptionsChart.data.datasets[0].data = [];
-                        adoptionsChart.data.datasets[1].data = [];
-                        adoptionsChart.data.datasets[2].data = [];
-                    }
-                    adoptionsChart.update();
-                })
-                .catch(err => console.error('Error loading adoptions:', err));
-
-            // Загрузить данные инвентаря
-            fetch('/api/analytics/inventory')
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        const categories = {'food': 'Корм', 'medicine': 'Лекарства', 'supplies': 'Принадлежности', 'other': 'Прочее'};
-                        inventoryChart.data.labels = data.map(d => categories[d.category] || d.category);
-                        inventoryChart.data.datasets[0].data = data.map(d => d.total_value || 0);
-                        inventoryChart.update();
-                    }
-                });
-        }
-
-        // Бургер-меню
-        const menuToggle = document.getElementById('menuToggle');
-        const mobileMenu = document.getElementById('mobileMenu');
-        
-        if (menuToggle && mobileMenu) {
-            menuToggle.addEventListener('click', function() {
-                menuToggle.classList.toggle('active');
-                mobileMenu.classList.toggle('active');
-                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
-            });
-            
-            mobileMenu.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', function() {
-                    menuToggle.classList.remove('active');
-                    mobileMenu.classList.remove('active');
-                    document.body.style.overflow = '';
-                });
-            });
-            
-            mobileMenu.addEventListener('click', function(e) {
-                if (e.target === mobileMenu) {
-                    menuToggle.classList.remove('active');
-                    mobileMenu.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
-            });
-        }
-
-        // Инициализация при загрузке страницы
-        window.addEventListener('DOMContentLoaded', function() {
-            initCharts();
-            
-            // Инициализация прогноза
-            const forecastData = {{ forecast|tojson }};
-            if (forecastData && forecastData.length > 0 && forecastChart) {
-                forecastChart.data.labels = forecastData.map(f => f.month);
-                forecastChart.data.datasets[0].data = forecastData.map(f => f.predicted_cost);
-                forecastChart.update();
-            }
-
-            // Инициализация инвентаря
-            const inventoryData = {{ inventory_analysis|tojson }};
-            if (inventoryData && inventoryData.length > 0 && inventoryChart) {
-                const categories = {'food': 'Корм', 'medicine': 'Лекарства', 'supplies': 'Принадлежности', 'other': 'Прочее'};
-                inventoryChart.data.labels = inventoryData.map(d => categories[d.category] || d.category);
-                inventoryChart.data.datasets[0].data = inventoryData.map(d => d.total_value || 0);
-                inventoryChart.update();
-            }
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/mobile-menu.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics-dashboard.js') }}"></script>
 </body>
 </html>
-

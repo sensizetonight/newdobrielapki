@@ -161,11 +161,11 @@ def create_db():
                    'Дмитрий Смирнов', 'Анна Волкова', 'Сергей Лебедев', 'Ольга Новикова',
                    'Павел Морозов', 'Татьяна Федорова', 'Андрей Соколов', 'Наталья Орлова']
     
-    base_date = datetime.now() - timedelta(days=90)
+    base_date = datetime.now() - timedelta(days=365)
     donation_amounts = [500, 1000, 1500, 2000, 2500, 3000, 5000, 10000]
     
-    for i in range(60):  # 60 пожертвований за 90 дней
-        date = base_date + timedelta(days=random.randint(0, 90), hours=random.randint(8, 20))
+    for i in range(180):  # пожертвования за год (для помесячной аналитики)
+        date = base_date + timedelta(days=random.randint(0, 365), hours=random.randint(8, 20))
         donor = random.choice(donor_names)
         amount = random.choice(donation_amounts)
         donation_type = random.choice(['shelter', 'animal'])
@@ -182,8 +182,8 @@ def create_db():
     statuses = ['pending', 'approved', 'rejected']
     status_weights = [0.3, 0.5, 0.2]  # 30% pending, 50% approved, 20% rejected
     
-    for i in range(40):  # 40 заявок на усыновление
-        date = base_date + timedelta(days=random.randint(0, 90), hours=random.randint(9, 18))
+    for i in range(80):  # заявки за год
+        date = base_date + timedelta(days=random.randint(0, 365), hours=random.randint(9, 18))
         applicant = random.choice(applicant_names)
         animal_id = random.choice(animal_ids)
         status = random.choices(statuses, weights=status_weights)[0]
@@ -209,10 +209,10 @@ def create_db():
         ('Шампунь для животных', 'supplies', 10, 'шт', 350),
     ]
     
-    # Генерируем записи инвентаря за последние 90 дней
-    base_date = datetime.now() - timedelta(days=90)
-    for i in range(45):  # 45 записей за 90 дней (примерно через день)
-        date = base_date + timedelta(days=i*2 + random.randint(0, 1))
+    # Генерируем записи инвентаря за последний год
+    inv_base = datetime.now() - timedelta(days=365)
+    for i in range(120):
+        date = inv_base + timedelta(days=random.randint(0, 365))
         item = random.choice(inventory_items)
         quantity = random.uniform(10, 100) if item[2] > 20 else random.uniform(5, 30)
         cursor.execute('INSERT INTO inventory (item_name, category, quantity, unit, unit_price, added_at) VALUES (?, ?, ?, ?, ?, ?)',

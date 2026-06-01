@@ -7,6 +7,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import json
 
+from analytics_engine import (
+    METHOD_DESCRIPTIONS,
+    build_forecast_series,
+    compute_kpis,
+    forecast_ensemble,
+    future_month_labels,
+)
+
 app = Flask(__name__)
 app.secret_key = 'dobrye_lapki_secret_2025'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -194,53 +202,119 @@ def get_animal_statistics():
         ''')
         return [dict(row) for row in cursor.fetchall()]
 
-def forecast_costs(months=3):
-    """Прогнозирование затрат на основе исторических данных"""
+def get_monthly_series(table: str, date_col: str, value_expr: str, months: int = 12):
+    """Агрегация по месяцам (YYYY-MM) за последние months месяцев."""
     with get_db() as conn:
-        # Получаем исторические данные о расходах (инвентарь)
-        cursor = conn.execute('''
-            SELECT DATE(added_at) as date, SUM(quantity * unit_price) as daily_cost
-            FROM inventory
-            WHERE datetime(added_at) >= datetime('now', '-90 days')
-            GROUP BY DATE(added_at)
-            ORDER BY date ASC
-        ''')
-        historical = [dict(row) for row in cursor.fetchall()]
-        
-        if len(historical) < 3:
-            # Недостаточно данных для прогноза - используем среднее значение
-            avg_daily = 0
-            if historical:
-                avg_daily = sum(h['daily_cost'] for h in historical) / len(historical)
-            trend = 0
-        else:
-            costs = [h['daily_cost'] for h in historical]
-            avg_daily = sum(costs) / len(costs)
-            # Простой расчет тренда (линейная регрессия без numpy)
-            n = len(costs)
-            x_sum = sum(range(n))
-            y_sum = sum(costs)
-            xy_sum = sum(i * costs[i] for i in range(n))
-            x2_sum = sum(i * i for i in range(n))
-            
-            if n * x2_sum - x_sum * x_sum != 0:
-                trend = (n * xy_sum - x_sum * y_sum) / (n * x2_sum - x_sum * x_sum)
-            else:
-                trend = 0
-        
-        # Прогноз на следующие месяцы
-        forecast = []
-        start_date = datetime.now()
-        for i in range(months):
-            month_date = start_date + timedelta(days=30 * (i + 1))
-            # Простое линейное прогнозирование
-            predicted_cost = max(0, avg_daily * 30 + (trend * 30 * (i + 1)))
-            forecast.append({
-                'month': month_date.strftime('%Y-%m'),
-                'predicted_cost': round(predicted_cost, 2)
-            })
-        
-        return forecast
+        cursor = conn.execute(
+            f'''
+            SELECT strftime('%Y-%m', {date_col}) AS month,
+                   {value_expr} AS total
+            FROM {table}
+            WHERE datetime({date_col}) >= datetime('now', ?)
+            GROUP BY month
+            ORDER BY month ASC
+            ''',
+            (f'-{months * 31} days',),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_monthly_donations(months=12):
+    return get_monthly_series(
+        'donations', 'donated_at', 'SUM(amount)', months
+    )
+
+
+def get_monthly_expenses(months=12):
+    return get_monthly_series(
+        'inventory', 'added_at', 'SUM(quantity * unit_price)', months
+    )
+
+
+def get_monthly_adoptions(months=12):
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''
+            SELECT strftime('%Y-%m', submitted_at) AS month,
+                   COUNT(*) AS total,
+                   SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved,
+                   SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+                   SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected
+            FROM adoption_requests
+            WHERE datetime(submitted_at) >= datetime('now', ?)
+            GROUP BY month
+            ORDER BY month ASC
+            ''',
+            (f'-{months * 31} days',),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_analytics_forecasts(horizon=3):
+    """Полный набор прогнозов для дашборда."""
+    donations_m = get_monthly_donations(12)
+    expenses_m = get_monthly_expenses(12)
+    adoptions_m = get_monthly_adoptions(12)
+
+    donations_fc = build_forecast_series(donations_m, 'total', 'month', horizon)
+    expenses_fc = build_forecast_series(expenses_m, 'total', 'month', horizon)
+
+    adoption_values = [float(r.get('approved', 0) or 0) for r in adoptions_m]
+    adoption_ensemble = forecast_ensemble(adoption_values, horizon)
+    last_adoption_month = adoptions_m[-1]['month'] if adoptions_m else datetime.now().strftime('%Y-%m')
+
+    adoption_forecast = []
+    for i, month in enumerate(future_month_labels(last_adoption_month, horizon)):
+        adoption_forecast.append(
+            {
+                'month': month,
+                'value': adoption_ensemble['predictions'][i],
+                'lower': adoption_ensemble['lower'][i],
+                'upper': adoption_ensemble['upper'][i],
+            }
+        )
+
+    # Баланс по месяцам (доход − расход) и прогноз
+    months_set = sorted(
+        set([r['month'] for r in donations_m] + [r['month'] for r in expenses_m])
+    )
+    don_map = {r['month']: float(r['total'] or 0) for r in donations_m}
+    exp_map = {r['month']: float(r['total'] or 0) for r in expenses_m}
+    balance_rows = [
+        {'month': m, 'total': round(don_map.get(m, 0) - exp_map.get(m, 0), 2)}
+        for m in months_set
+    ]
+    balance_fc = build_forecast_series(balance_rows, 'total', 'month', horizon)
+
+    # Обратная совместимость: прогноз расходов для шаблона
+    legacy_forecast = [
+        {'month': f['month'], 'predicted_cost': f['value']}
+        for f in expenses_fc['forecast']
+    ]
+
+    return {
+        'donations': donations_fc,
+        'expenses': expenses_fc,
+        'adoptions': {
+            'historical': [
+                {
+                    'month': r['month'],
+                    'value': int(r.get('approved', 0) or 0),
+                    'total': int(r.get('total', 0) or 0),
+                }
+                for r in adoptions_m
+            ],
+            'forecast': adoption_forecast,
+        },
+        'balance': balance_fc,
+        'legacy_expense_forecast': legacy_forecast,
+        'methods': METHOD_DESCRIPTIONS,
+    }
+
+
+def forecast_costs(months=3):
+    """Прогноз расходов (обёртка над ансамблевой моделью)."""
+    return get_analytics_forecasts(months)['legacy_expense_forecast']
 
 def get_financial_summary():
     """Финансовая сводка"""
@@ -655,20 +729,26 @@ def analytics_dashboard():
     if current_user.role != 'admin':
         flash('Access restricted to administrators only!', 'error')
         return redirect(url_for('index'))
-    
+
     financial_summary = get_financial_summary()
     animal_stats = get_animal_statistics()
     inventory_analysis = get_inventory_analysis()
     donation_categories = get_donation_categories()
     forecast = forecast_costs(3)
-    
-    return render_template('analytics.html', 
-                         title="Analytics Dashboard",
-                         financial_summary=financial_summary,
-                         animal_stats=animal_stats,
-                         inventory_analysis=inventory_analysis,
-                         donation_categories=donation_categories,
-                         forecast=forecast)
+    kpis = compute_kpis(
+        financial_summary, animal_stats, get_monthly_adoptions(6)
+    )
+
+    return render_template(
+        'analytics.html',
+        title='Аналитика — Добрые Лапки',
+        financial_summary=financial_summary,
+        animal_stats=animal_stats,
+        inventory_analysis=inventory_analysis,
+        donation_categories=donation_categories,
+        forecast=forecast,
+        kpis=kpis,
+    )
 
 @app.route('/api/analytics/donations-timeline')
 @login_required
@@ -698,6 +778,64 @@ def api_inventory_analysis():
         return jsonify({'error': 'Access denied'}), 403
     data = get_inventory_analysis()
     return jsonify(data)
+
+
+def _admin_api_guard():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Access denied'}), 403
+    return None
+
+
+@app.route('/api/analytics/forecasts')
+@login_required
+def api_analytics_forecasts():
+    """Прогнозы по доходам, расходам, усыновлениям и балансу."""
+    denied = _admin_api_guard()
+    if denied:
+        return denied
+    horizon = request.args.get('horizon', 3, type=int)
+    horizon = max(1, min(horizon, 6))
+    return jsonify(get_analytics_forecasts(horizon))
+
+
+@app.route('/api/analytics/dashboard')
+@login_required
+def api_analytics_dashboard():
+    """Сводка KPI и справочник методов прогнозирования."""
+    denied = _admin_api_guard()
+    if denied:
+        return denied
+    financial = get_financial_summary()
+    animal_stats = get_animal_statistics()
+    adoption_monthly = get_monthly_adoptions(6)
+    kpis = compute_kpis(financial, animal_stats, adoption_monthly)
+    return jsonify(
+        {
+            'kpis': kpis,
+            'financial': financial,
+            'animal_stats': animal_stats,
+            'donation_categories': get_donation_categories(),
+            'inventory': get_inventory_analysis(),
+        }
+    )
+
+
+@app.route('/api/analytics/monthly-overview')
+@login_required
+def api_monthly_overview():
+    """Помесячные ряды для комбинированных графиков."""
+    denied = _admin_api_guard()
+    if denied:
+        return denied
+    months = request.args.get('months', 12, type=int)
+    return jsonify(
+        {
+            'donations': get_monthly_donations(months),
+            'expenses': get_monthly_expenses(months),
+            'adoptions': get_monthly_adoptions(months),
+        }
+    )
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)
