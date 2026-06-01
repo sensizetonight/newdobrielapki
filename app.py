@@ -1,7 +1,9 @@
 # app.py
-from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify, Response
 import sqlite3
 import os
+import csv
+import io
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -14,6 +16,13 @@ from analytics_engine import (
     forecast_ensemble,
     future_month_labels,
 )
+from db_migrate import migrate_database
+from economic_engine import (
+    BUDGET_CATEGORIES,
+    get_full_economic_dashboard,
+    set_setting,
+)
+from economic_engine import current_year_month
 
 app = Flask(__name__)
 app.secret_key = 'dobrye_lapki_secret_2025'
@@ -23,6 +32,7 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
 DATABASE = 'shelter.db'
+migrate_database(DATABASE)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -595,7 +605,11 @@ def admin_dashboard():
             new_status = request.form.get('status')
             if request_id and new_status in ['pending', 'approved', 'rejected']:
                 with get_db() as conn:
-                    conn.execute('UPDATE adoption_requests SET status = ? WHERE id = ?', (new_status, request_id))
+                    processed = datetime.now().isoformat() if new_status != 'pending' else None
+                    conn.execute(
+                        'UPDATE adoption_requests SET status = ?, processed_at = COALESCE(processed_at, ?) WHERE id = ?',
+                        (new_status, processed, request_id),
+                    )
                     conn.commit()
                     log_action('update_adoption_request', f'Updated adoption request ID {request_id} to {new_status}', current_user.id)
                 flash(f"Request #{request_id} status updated to {new_status}!", "success")
@@ -694,33 +708,63 @@ def contact():
 
 @app.route('/donate', methods=['GET', 'POST'])
 def donate():
-    animals_list = get_animals()
+    from economic_engine import get_campaigns_with_progress, get_cost_per_animal, get_setting
+
+    animals_list = [a for a in get_animals() if a.get('status') != 'Adopted']
+    campaigns = get_campaigns_with_progress()
+    cost_info = get_cost_per_animal()
+    suggested = {
+        'month': int(cost_info['monthly_per_animal']),
+        'week': int(cost_info['daily_cost'] * 7),
+        'day': int(cost_info['daily_cost']),
+    }
+
     if request.method == 'POST':
         user_name = request.form.get('user_name')
         amount = request.form.get('amount')
         donation_type = request.form.get('donation_type')
         animal_id = request.form.get('animal_id') if donation_type == 'animal' else None
+        campaign_id = request.form.get('campaign_id') or None
+        is_recurring = 1 if request.form.get('is_recurring') else 0
 
         if not all([user_name, amount, donation_type]):
-            flash("All required fields must be filled!", "error")
+            flash("Заполните все обязательные поля!", "error")
         else:
             try:
                 amount = float(amount)
                 if amount <= 0:
-                    flash("Amount must be greater than zero!", "error")
+                    flash("Сумма должна быть больше нуля!", "error")
                 else:
                     with get_db() as conn:
-                        conn.execute('''
-                            INSERT INTO donations (user_name, amount, donation_type, animal_id, donated_at)
-                            VALUES (?, ?, ?, ?, ?)
-                        ''', (user_name, amount, donation_type, animal_id, datetime.now().isoformat()))
+                        conn.execute(
+                            '''INSERT INTO donations (user_name, amount, donation_type, animal_id, campaign_id, is_recurring, donated_at)
+                               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                            (user_name, amount, donation_type, animal_id, campaign_id, is_recurring,
+                             datetime.now().isoformat()),
+                        )
+                        if is_recurring:
+                            conn.execute(
+                                '''INSERT INTO recurring_donations (user_name, amount, frequency, next_date, active, created_at)
+                                   VALUES (?, ?, 'monthly', ?, 1, ?)''',
+                                (user_name, amount,
+                                 (datetime.now() + timedelta(days=30)).isoformat(),
+                                 datetime.now().isoformat()),
+                            )
                         conn.commit()
-                        log_action('donation', f'Donation of {amount} by {user_name}', current_user.id if current_user.is_authenticated else 0)
-                    flash("Thank you for your donation!", "success")
+                    log_action('donation', f'Donation {amount} by {user_name}',
+                               current_user.id if current_user.is_authenticated else 0)
+                    flash("Спасибо за пожертвование!", "success")
                     return redirect(url_for('donate'))
             except ValueError:
-                flash("Amount must be a valid number!", "error")
-    return render_template('donate.html', title="Dobrye Lapki - Donate", animals=animals_list)
+                flash("Укажите корректную сумму!", "error")
+    return render_template(
+        'donate.html',
+        title="Пожертвовать — Добрые Лапки",
+        animals=animals_list,
+        campaigns=campaigns,
+        suggested=suggested,
+        cost_info=cost_info,
+    )
 
 @app.route('/admin/analytics')
 @login_required
@@ -818,6 +862,138 @@ def api_analytics_dashboard():
             'inventory': get_inventory_analysis(),
         }
     )
+
+
+@app.route('/admin/economics', methods=['GET', 'POST'])
+@login_required
+def economics_dashboard():
+    if current_user.role != 'admin':
+        flash('Доступ только для администраторов!', 'error')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        ym = current_year_month()
+        try:
+            if action == 'add_budget':
+                with get_db() as conn:
+                    conn.execute(
+                        '''INSERT OR REPLACE INTO budget_plans (year_month, category, planned_amount)
+                           VALUES (?, ?, ?)''',
+                        (ym, request.form.get('category'), float(request.form.get('planned_amount'))),
+                    )
+                    conn.commit()
+                flash('Статья бюджета сохранена', 'success')
+            elif action == 'add_campaign':
+                with get_db() as conn:
+                    aid = request.form.get('animal_id') or None
+                    conn.execute(
+                        '''INSERT INTO fundraising_campaigns (title, description, target_amount, animal_id, start_date, status)
+                           VALUES (?, '', ?, ?, ?, 'active')''',
+                        (request.form.get('title'), float(request.form.get('target_amount')),
+                         aid, datetime.now().isoformat()),
+                    )
+                    conn.commit()
+                flash('Сбор создан', 'success')
+            elif action == 'add_partner':
+                with get_db() as conn:
+                    conn.execute(
+                        'INSERT INTO partners (name, amount, partner_type, start_date) VALUES (?, ?, ?, ?)',
+                        (request.form.get('name'), float(request.form.get('amount')),
+                         'sponsor', datetime.now().isoformat()),
+                    )
+                    conn.commit()
+                flash('Партнёр добавлен', 'success')
+            elif action == 'add_event':
+                with get_db() as conn:
+                    conn.execute(
+                        'INSERT INTO events (name, event_date, cost, revenue) VALUES (?, ?, ?, ?)',
+                        (request.form.get('name'), datetime.now().isoformat(),
+                         float(request.form.get('cost')), float(request.form.get('revenue'))),
+                    )
+                    conn.commit()
+                flash('Мероприятие добавлено', 'success')
+            elif action == 'add_recurring':
+                with get_db() as conn:
+                    conn.execute(
+                        '''INSERT INTO recurring_donations (user_name, amount, frequency, next_date, active, created_at)
+                           VALUES (?, ?, 'monthly', ?, 1, ?)''',
+                        (request.form.get('user_name'), float(request.form.get('amount')),
+                         (datetime.now() + timedelta(days=30)).isoformat(), datetime.now().isoformat()),
+                    )
+                    conn.commit()
+                flash('Регулярное пожертвование добавлено', 'success')
+            elif action == 'add_vet':
+                d = request.form.get('scheduled_date')
+                scheduled = f'{d}T10:00:00'
+                with get_db() as conn:
+                    conn.execute(
+                        '''INSERT INTO vet_appointments (animal_id, scheduled_at, service_type, estimated_cost, status)
+                           VALUES (?, ?, ?, ?, 'planned')''',
+                        (request.form.get('animal_id'), scheduled, request.form.get('service_type'),
+                         float(request.form.get('estimated_cost'))),
+                    )
+                    conn.commit()
+                flash('Визит добавлен', 'success')
+            elif action == 'save_settings':
+                set_setting('kennel_capacity', request.form.get('kennel_capacity', '25'))
+                set_setting('daily_cost_per_animal', request.form.get('daily_cost_per_animal', '150'))
+                set_setting('monthly_fixed_costs', request.form.get('monthly_fixed_costs', '45000'))
+                flash('Настройки сохранены', 'success')
+        except (ValueError, TypeError):
+            flash('Проверьте введённые числа', 'error')
+        return redirect(url_for('economics_dashboard'))
+
+    eco = get_full_economic_dashboard()
+    animals = get_animals()
+    return render_template(
+        'economics.html',
+        title='Экономика — Добрые Лапки',
+        eco=eco,
+        animals=animals,
+        budget_categories=BUDGET_CATEGORIES,
+    )
+
+
+@app.route('/admin/economics/export')
+@login_required
+def export_economics_csv():
+    if current_user.role != 'admin':
+        flash('Доступ запрещён', 'error')
+        return redirect(url_for('index'))
+    eco = get_full_economic_dashboard()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Отчёт экономики приюта', datetime.now().isoformat()])
+    writer.writerow([])
+    writer.writerow(['Показатель', 'Значение'])
+    writer.writerow(['Баланс', eco['financial']['balance']])
+    writer.writerow(['Доходы всего', eco['financial']['total_income']])
+    writer.writerow(['Расходы всего', eco['financial']['total_expenses']])
+    writer.writerow(['Запас прочности (мес)', eco['sustainability']['index_months']])
+    writer.writerow(['Стоимость содержания/мес', eco['cost_per_animal']['monthly_per_animal']])
+    writer.writerow([])
+    writer.writerow(['Бюджет', eco['budget']['year_month'], 'План', 'Факт'])
+    for row in eco['budget']['items']:
+        writer.writerow([row['label'], '', row['planned'], row['actual']])
+    writer.writerow([])
+    writer.writerow(['Сценарий', 'Доход', 'Расход', 'Баланс'])
+    for s in eco['scenarios']:
+        writer.writerow([s['name'], s['income'], s['expenses'], s['balance']])
+    return Response(
+        '\ufeff' + output.getvalue(),
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': 'attachment; filename=economics_report.csv'},
+    )
+
+
+@app.route('/api/economics/dashboard')
+@login_required
+def api_economics_dashboard():
+    denied = _admin_api_guard()
+    if denied:
+        return denied
+    return jsonify(get_full_economic_dashboard())
 
 
 @app.route('/api/analytics/monthly-overview')

@@ -368,6 +368,7 @@
             {% if current_user.is_authenticated and current_user.role == 'admin' %}
             <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
             <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            <a href="{{ url_for('economics_dashboard') }}" class="nav-button {% if request.endpoint == 'economics_dashboard' %}active{% endif %}"><i class="fas fa-coins"></i> Экономика</a>
             {% endif %}
         </nav>
         <div class="auth-links">
@@ -391,8 +392,11 @@
                 {% endif %}
             {% endwith %}
             <div style="margin-bottom: 1rem;">
-                <a href="{{ url_for('analytics_dashboard') }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; transition: transform 0.2s ease;">
-                    <i class="fas fa-chart-line"></i> Перейти к аналитике
+                <a href="{{ url_for('analytics_dashboard') }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 600;">
+                    <i class="fas fa-chart-line"></i> Аналитика
+                </a>
+                <a href="{{ url_for('economics_dashboard') }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; margin-left: 0.5rem;">
+                    <i class="fas fa-coins"></i> Экономика
                 </a>
             </div>
             <div class="tabs">

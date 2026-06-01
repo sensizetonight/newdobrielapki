@@ -25,6 +25,7 @@
             <a href="{{ url_for('donate') }}" class="nav-button"><i class="fas fa-heart"></i> Пожертвовать</a>
             <a href="{{ url_for('admin_dashboard') }}" class="nav-button"><i class="fas fa-user-shield"></i> Админ</a>
             <a href="{{ url_for('analytics_dashboard') }}" class="nav-button active"><i class="fas fa-chart-line"></i> Аналитика</a>
+            <a href="{{ url_for('economics_dashboard') }}" class="nav-button"><i class="fas fa-coins"></i> Экономика</a>
         </nav>
         <div class="auth-links">
             {% if current_user.is_authenticated %}
@@ -40,6 +41,7 @@
             <a href="{{ url_for('animals') }}" class="nav-button"><i class="fas fa-paw"></i> Животные</a>
             <a href="{{ url_for('admin_dashboard') }}" class="nav-button"><i class="fas fa-user-shield"></i> Админ</a>
             <a href="{{ url_for('analytics_dashboard') }}" class="nav-button active"><i class="fas fa-chart-line"></i> Аналитика</a>
+            <a href="{{ url_for('economics_dashboard') }}" class="nav-button"><i class="fas fa-coins"></i> Экономика</a>
         </nav>
     </div>
 

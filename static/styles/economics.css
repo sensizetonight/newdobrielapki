@@ -1,0 +1,220 @@
+.economics-page main.economics-main {
+    max-width: 1280px;
+    margin: 1.5rem auto 3rem;
+    padding: 0 1rem;
+}
+
+.eco-hero {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.eco-hero h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.eco-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.eco-actions a, .eco-actions button {
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.eco-btn-primary {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.eco-btn-outline {
+    background: white;
+    border: 2px solid #e2e8f0;
+    color: var(--text);
+}
+
+.eco-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.eco-kpi {
+    background: white;
+    border-radius: 14px;
+    padding: 1rem 1.15rem;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary);
+    min-height: 88px;
+}
+
+.eco-kpi.warn { border-left-color: #f59e0b; }
+.eco-kpi.ok { border-left-color: var(--success); }
+.eco-kpi.danger { border-left-color: var(--error); }
+
+.eco-kpi .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #718096;
+    font-weight: 600;
+}
+
+.eco-kpi .value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-top: 0.35rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.eco-kpi .sub {
+    font-size: 0.75rem;
+    color: #718096;
+    margin-top: 0.25rem;
+}
+
+.eco-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+}
+
+.eco-tab {
+    padding: 0.5rem 0.85rem;
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: #718096;
+    cursor: pointer;
+    border-radius: 8px;
+    font-family: inherit;
+}
+
+.eco-tab.active {
+    background: rgba(102, 126, 234, 0.12);
+    color: var(--primary);
+}
+
+.eco-panel {
+    display: none;
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+}
+
+.eco-panel.active { display: block; }
+
+.eco-panel h3 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: var(--text);
+}
+
+.eco-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.eco-table th, .eco-table td {
+    padding: 0.65rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.eco-table th {
+    background: #f7fafc;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #718096;
+}
+
+.eco-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.eco-card {
+    background: #f7fafc;
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+}
+
+.eco-card h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
+
+.eco-progress {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.eco-progress span {
+    display: block;
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: 4px;
+}
+
+.eco-form-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    align-items: flex-end;
+}
+
+.eco-form-inline input, .eco-form-inline select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.eco-alert {
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.eco-alert.warning {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+
+.badge-abc-a { background: #c6f6d5; color: #22543d; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+.badge-abc-b { background: #feebc8; color: #7c2d12; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+.badge-abc-c { background: #e2e8f0; color: #4a5568; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+
+@media (max-width: 768px) {
+    .eco-table { font-size: 0.75rem; }
+    .eco-table-wrap { overflow-x: auto; }
+}

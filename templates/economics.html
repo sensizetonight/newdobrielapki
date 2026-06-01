@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/economics.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="economics-page">
+    <header>
+        <button class="menu-toggle" id="menuToggle" aria-label="Меню"><span></span><span></span><span></span></button>
+        <h1>Добрые Лапки</h1>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button"><i class="fas fa-user-shield"></i> Админ</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button"><i class="fas fa-chart-line"></i> Аналитика</a>
+            <a href="{{ url_for('economics_dashboard') }}" class="nav-button active"><i class="fas fa-coins"></i> Экономика</a>
+        </nav>
+        <div class="auth-links">
+            <span>{{ current_user.username }}</span>
+            <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+        </div>
+    </header>
+
+    <main class="economics-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="eco-hero">
+            <h2><i class="fas fa-coins"></i> Экономическое управление</h2>
+            <div class="eco-actions">
+                <a href="{{ url_for('export_economics_csv') }}" class="eco-btn-outline"><i class="fas fa-file-csv"></i> Экспорт CSV</a>
+                <a href="{{ url_for('analytics_dashboard') }}" class="eco-btn-primary"><i class="fas fa-chart-line"></i> Аналитика</a>
+            </div>
+        </div>
+
+        {% set e = eco %}
+        <div class="eco-kpi-row">
+            <div class="eco-kpi {% if e.cash_runway.alert %}danger{% else %}ok{% endif %}">
+                <div class="label">Запас прочности</div>
+                <div class="value">{{ e.sustainability.index_months }} мес.</div>
+                <div class="sub">{{ e.sustainability.label }}</div>
+            </div>
+            <div class="eco-kpi">
+                <div class="label">Баланс</div>
+                <div class="value">{{ e.financial.balance|int }} ₽</div>
+                <div class="sub">Месяц: {{ e.financial.monthly_balance|int }} ₽</div>
+            </div>
+            <div class="eco-kpi">
+                <div class="label">Содержание / питомец</div>
+                <div class="value">{{ e.cost_per_animal.monthly_per_animal|int }} ₽</div>
+                <div class="sub">{{ e.cost_per_animal.active_animals }} животных в приюте</div>
+            </div>
+            <div class="eco-kpi {% if e.cash_runway.alert %}warn{% endif %}">
+                <div class="label">Кассовый разрыв</div>
+                <div class="value">{% if e.cash_runway.days_until_gap %}{{ e.cash_runway.days_until_gap }} дн.{% else %}—{% endif %}</div>
+                <div class="sub">{% if e.cash_runway.gap_date %}≈ {{ e.cash_runway.gap_date }}{% else %}Доходы покрывают расходы{% endif %}</div>
+            </div>
+            <div class="eco-kpi">
+                <div class="label">Загрузка вольеров</div>
+                <div class="value">{{ e.kennel.occupancy_pct }}%</div>
+                <div class="sub">{{ e.kennel.occupied }}/{{ e.kennel.capacity }} мест</div>
+            </div>
+            <div class="eco-kpi">
+                <div class="label">Точка безубыточности</div>
+                <div class="value">{% if e.break_even.is_profitable %}✓{% else %}{{ e.break_even.break_even_donations_needed|int }} ₽{% endif %}</div>
+                <div class="sub">{% if e.break_even.is_profitable %}Профицит{% else %}нужно пожертвований/мес{% endif %}</div>
+            </div>
+        </div>
+
+        <div class="eco-tabs" role="tablist">
+            <button type="button" class="eco-tab active" data-tab="overview">Обзор</button>
+            <button type="button" class="eco-tab" data-tab="budget">Бюджет</button>
+            <button type="button" class="eco-tab" data-tab="campaigns">Сборы</button>
+            <button type="button" class="eco-tab" data-tab="income">Доходы</button>
+            <button type="button" class="eco-tab" data-tab="expenses">Расходы</button>
+            <button type="button" class="eco-tab" data-tab="ops">Операции</button>
+            <button type="button" class="eco-tab" data-tab="scenarios">Сценарии</button>
+            <button type="button" class="eco-tab" data-tab="settings">Настройки</button>
+        </div>
+
+        <section id="tab-overview" class="eco-panel active">
+            <h3>Сводка</h3>
+            <div class="eco-grid-2">
+                <div class="eco-card">
+                    <h4>Воронка доноров</h4>
+                    <p>Уникальных: <strong>{{ e.donor_funnel.unique_donors }}</strong></p>
+                    <p>Повторных: <strong>{{ e.donor_funnel.repeat_donors }}</strong> ({{ e.donor_funnel.repeat_rate_pct }}%)</p>
+                    <p>Регулярных: <strong>{{ e.donor_funnel.recurring_donors }}</strong></p>
+                    <p>Средний чек: <strong>{{ e.donor_funnel.avg_donation|int }} ₽</strong></p>
+                </div>
+                <div class="eco-card">
+                    <h4>Эффект усыновлений</h4>
+                    <p>Усыновлено: <strong>{{ e.adoption_savings.adopted_count }}</strong></p>
+                    <p>Условная экономия: <strong>{{ e.adoption_savings.economic_effect|int }} ₽</strong></p>
+                </div>
+                <div class="eco-card">
+                    <h4>Регулярные платежи</h4>
+                    <p>Активных подписок: <strong>{{ e.recurring.active_count }}</strong></p>
+                    <p>В месяц: <strong>{{ e.recurring.monthly_recurring_total|int }} ₽</strong></p>
+                </div>
+                <div class="eco-card">
+                    <h4>Платные услуги</h4>
+                    <p>Выручка: <strong>{{ e.services.total_revenue|int }} ₽</strong></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-budget" class="eco-panel">
+            <h3>Бюджет {{ e.budget.year_month }} (план / факт)</h3>
+            <form method="POST" class="eco-form-inline">
+                <input type="hidden" name="action" value="add_budget">
+                <select name="category">{% for k, v in budget_categories.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+                <input type="number" name="planned_amount" placeholder="План, ₽" required min="0" step="100">
+                <button type="submit" class="eco-btn-primary">Добавить статью</button>
+            </form>
+            <div class="eco-table-wrap">
+                <table class="eco-table">
+                    <thead><tr><th>Статья</th><th>План</th><th>Факт</th><th>Отклонение</th><th>%</th></tr></thead>
+                    <tbody>
+                        {% for row in e.budget.items %}
+                        <tr>
+                            <td>{{ row.label }}</td>
+                            <td>{{ row.planned|int }} ₽</td>
+                            <td>{{ row.actual|int }} ₽</td>
+                            <td>{% if row.variance > 0 %}+{% endif %}{{ row.variance|int }} ₽</td>
+                            <td>{{ row.pct }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="tab-campaigns" class="eco-panel">
+            <h3>Целевые сборы</h3>
+            <form method="POST" class="eco-form-inline">
+                <input type="hidden" name="action" value="add_campaign">
+                <input type="text" name="title" placeholder="Название" required>
+                <input type="number" name="target_amount" placeholder="Цель, ₽" required min="100">
+                <select name="animal_id"><option value="">На приют</option>{% for a in animals %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select>
+                <button type="submit" class="eco-btn-primary">Создать сбор</button>
+            </form>
+            {% for c in e.campaigns %}
+            <div class="eco-card" style="margin-bottom:0.75rem">
+                <strong>{{ c.title }}</strong> — {{ c.raised|int }} / {{ c.target_amount|int }} ₽ ({{ c.progress_pct }}%)
+                <div class="eco-progress"><span style="width:{{ c.progress_pct }}%"></span></div>
+            </div>
+            {% else %}<p>Нет активных сборов</p>{% endfor %}
+        </section>
+
+        <section id="tab-income" class="eco-panel">
+            <h3>Доходы</h3>
+            <h4 style="margin-top:1rem">Партнёры</h4>
+            <form method="POST" class="eco-form-inline">
+                <input type="hidden" name="action" value="add_partner">
+                <input type="text" name="name" placeholder="Название" required>
+                <input type="number" name="amount" placeholder="Сумма ₽" required min="0">
+                <button type="submit" class="eco-btn-primary">Добавить</button>
+            </form>
+            <table class="eco-table"><thead><tr><th>Партнёр</th><th>Сумма</th><th>Тип</th></tr></thead>
+            <tbody>{% for p in e.partners.partners %}<tr><td>{{ p.name }}</td><td>{{ p.amount|int }} ₽</td><td>{{ p.partner_type }}</td></tr>{% endfor %}</tbody></table>
+
+            <h4 style="margin-top:1.5rem">Мероприятия (ROI)</h4>
+            <form method="POST" class="eco-form-inline">
+                <input type="hidden" name="action" value="add_event">
+                <input type="text" name="name" placeholder="Название" required>
+                <input type="number" name="cost" placeholder="Затраты" required min="0">
+                <input type="number" name="revenue" placeholder="Доход" required min="0">
+                <button type="submit" class="eco-btn-primary">Добавить</button>
+            </form>
+            <table class="eco-table"><thead><tr><th>Событие</th><th>Затраты</th><th>Доход</th><th>ROI</th></tr></thead>
+            <tbody>{% for ev in e.events_roi %}<tr><td>{{ ev.name }}</td><td>{{ ev.cost|int }} ₽</td><td>{{ ev.revenue|int }} ₽</td><td>{{ ev.roi_pct }}%</td></tr>{% endfor %}</tbody></table>
+
+            <h4 style="margin-top:1.5rem">Регулярные пожертвования</h4>
+            <form method="POST" class="eco-form-inline">
+                <input type="hidden" name="action" value="add_recurring">
+                <input type="text" name="user_name" placeholder="Имя" required>
+                <input type="number" name="amount" placeholder="₽/мес" required min="100">
+                <button type="submit" class="eco-btn-primary">Добавить</button>
+            </form>
+        </section>
+
+        <section id="tab-expenses" class="eco-panel">
+            <h3>Контроль расходов</h3>
+            {% if e.stock_alerts %}
+            <div class="eco-alert warning"><strong>Низкий запас:</strong>
+                {% for a in e.stock_alerts %}{{ a.label }} ({{ a.days_left }} дн.); {% endfor %}
+            </div>
+            {% endif %}
+            <h4>ABC-анализ инвентаря</h4>
+            <div class="eco-table-wrap">
+                <table class="eco-table">
+                    <thead><tr><th>Позиция</th><th>Сумма</th><th>Доля</th><th>Класс</th></tr></thead>
+                    <tbody>
+                        {% for i in e.abc_inventory %}
+                        <tr>
+                            <td>{{ i.name }}</td>
+                            <td>{{ i.value|int }} ₽</td>
+                            <td>{{ i.share_pct }}%</td>
+                            <td><span class="badge-abc-{{ i.class|lower }}">{{ i.class }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <h4 style="margin-top:1rem">Сравнение цен поставщиков</h4>
+            <table class="eco-table">
+                <thead><tr><th>Товар</th><th>Мин</th><th>Макс</th><th>Средняя</th></tr></thead>
+                <tbody>{% for s in e.supplier_comparison %}<tr><td>{{ s.item_name }}</td><td>{{ s.min_price }} ₽</td><td>{{ s.max_price }} ₽</td><td>{{ s.avg_price }} ₽</td></tr>{% endfor %}</tbody>
+            </table>
+        </section>
+
+        <section id="tab-ops" class="eco-panel">
+            <h3>Операционная эффективность</h3>
+            <div class="eco-grid-2">
+                <div class="eco-card">
+                    <h4>Усыновления</h4>
+                    <p>Очередь: <strong>{{ e.adoption_efficiency.pending_queue }}</strong></p>
+                    <p>Среднее время обработки: <strong>{{ e.adoption_efficiency.avg_processing_days }} дн.</strong></p>
+                </div>
+                <div class="eco-card">
+                    <h4>Веткалендарь (план {{ e.vet_calendar.planned_cost_total|int }} ₽)</h4>
+                    <ul>{% for v in e.vet_calendar.appointments %}<li>{{ v.animal_name }} — {{ v.service_type }} ({{ v.scheduled_at[:10] }})</li>{% else %}<li>Нет записей</li>{% endfor %}</ul>
+                </div>
+            </div>
+            <form method="POST" class="eco-form-inline" style="margin-top:1rem">
+                <input type="hidden" name="action" value="add_vet">
+                <select name="animal_id">{% for a in animals %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select>
+                <input type="text" name="service_type" placeholder="Услуга" required>
+                <input type="number" name="estimated_cost" placeholder="Стоимость" required min="0">
+                <input type="date" name="scheduled_date" required>
+                <button type="submit" class="eco-btn-primary">Запись</button>
+            </form>
+        </section>
+
+        <section id="tab-scenarios" class="eco-panel">
+            <h3>Сценарный анализ и безубыточность</h3>
+            <table class="eco-table">
+                <thead><tr><th>Сценарий</th><th>Доход</th><th>Расход</th><th>Баланс</th></tr></thead>
+                <tbody>{% for s in e.scenarios %}<tr><td>{{ s.name }}</td><td>{{ s.income|int }} ₽</td><td>{{ s.expenses|int }} ₽</td><td>{{ s.balance|int }} ₽</td></tr>{% endfor %}</tbody>
+            </table>
+            <div class="eco-card" style="margin-top:1rem">
+                <p>Фиксированные расходы: <strong>{{ e.break_even.monthly_fixed|int }} ₽</strong></p>
+                <p>Переменные: <strong>{{ e.break_even.monthly_variable|int }} ₽</strong></p>
+                <p>Излишек/дефицит: <strong>{{ e.break_even.surplus|int }} ₽</strong></p>
+            </div>
+        </section>
+
+        <section id="tab-settings" class="eco-panel">
+            <h3>Параметры приюта</h3>
+            <form method="POST" class="eco-form-inline">
+                <input type="hidden" name="action" value="save_settings">
+                <label>Вместимость <input type="number" name="kennel_capacity" value="{{ e.settings.kennel_capacity }}" min="1"></label>
+                <label>₽/день на животное <input type="number" name="daily_cost_per_animal" value="{{ e.settings.daily_cost_per_animal }}" min="1"></label>
+                <label>Фикс. расходы/мес <input type="number" name="monthly_fixed_costs" value="{{ e.settings.monthly_fixed_costs }}" min="0"></label>
+                <button type="submit" class="eco-btn-primary">Сохранить</button>
+            </form>
+        </section>
+    </main>
+
+    <footer><p>© 2025 Добрые Лапки</p></footer>
+    <script src="{{ url_for('static', filename='js/mobile-menu.js') }}"></script>
+    <script>
+        document.querySelectorAll('.eco-tab').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.eco-tab').forEach(function(b) { b.classList.remove('active'); });
+                document.querySelectorAll('.eco-panel').forEach(function(p) { p.classList.remove('active'); });
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

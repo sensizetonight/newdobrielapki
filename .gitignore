@@ -8,6 +8,7 @@ venv/
 env/
 .env
 *.db
+*.db-journal
 shelter.db
 static/uploads/*
 !static/uploads/.gitkeep

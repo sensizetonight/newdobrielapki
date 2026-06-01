@@ -65,6 +65,7 @@ def create_db():
             phone TEXT NOT NULL,
             email TEXT NOT NULL,
             submitted_at TEXT NOT NULL,
+            processed_at TEXT,
             status TEXT NOT NULL DEFAULT 'pending',
             FOREIGN KEY (animal_id) REFERENCES animals(id)
         )
@@ -77,6 +78,8 @@ def create_db():
             amount REAL NOT NULL,
             donation_type TEXT NOT NULL CHECK(donation_type IN ('shelter', 'animal')),
             animal_id INTEGER,
+            campaign_id INTEGER,
+            is_recurring INTEGER DEFAULT 0,
             donated_at TEXT NOT NULL,
             FOREIGN KEY (animal_id) REFERENCES animals(id)
         )
@@ -90,6 +93,7 @@ def create_db():
             quantity REAL NOT NULL,
             unit TEXT NOT NULL,
             unit_price REAL NOT NULL DEFAULT 0,
+            supplier_id INTEGER,
             added_at TEXT NOT NULL
         )
     ''')
@@ -190,8 +194,11 @@ def create_db():
         phone = f'+7{random.randint(900, 999)}{random.randint(1000000, 9999999)}'
         email = f'{applicant.lower().replace(" ", ".")}@example.com'
         
-        cursor.execute('INSERT INTO adoption_requests (animal_id, user_name, phone, email, submitted_at, status) VALUES (?, ?, ?, ?, ?, ?)',
-                       (animal_id, applicant, phone, email, date.isoformat(), status))
+        processed = (date + timedelta(days=random.randint(2, 14))).isoformat() if status != 'pending' else None
+        cursor.execute(
+            'INSERT INTO adoption_requests (animal_id, user_name, phone, email, submitted_at, processed_at, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (animal_id, applicant, phone, email, date.isoformat(), processed, status),
+        )
 
     # Добавляем много записей инвентаря за последние 90 дней для прогноза
     inventory_items = [
@@ -217,6 +224,72 @@ def create_db():
         quantity = random.uniform(10, 100) if item[2] > 20 else random.uniform(5, 30)
         cursor.execute('INSERT INTO inventory (item_name, category, quantity, unit, unit_price, added_at) VALUES (?, ?, ?, ?, ?, ?)',
                        (item[0], item[1], round(quantity, 2), item[3], item[4], date.isoformat()))
+
+    from db_migrate import migrate_database
+    migrate_database(DATABASE)
+
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    ym = datetime.now().strftime('%Y-%m')
+
+    budget_seed = [
+        ('food', 85000), ('medicine', 45000), ('supplies', 35000),
+        ('rent', 60000), ('salaries', 120000), ('marketing', 15000), ('other', 10000),
+    ]
+    for cat, amt in budget_seed:
+        cursor.execute(
+            'INSERT OR IGNORE INTO budget_plans (year_month, category, planned_amount) VALUES (?, ?, ?)',
+            (ym, cat, amt),
+        )
+
+    cursor.execute(
+        '''INSERT INTO fundraising_campaigns (title, description, target_amount, animal_id, start_date, end_date, status)
+           VALUES (?, ?, ?, ?, ?, ?, 'active')''',
+        ('Корм на зиму', 'Закупка корма для всех питомцев', 150000, animal_ids[0],
+         (datetime.now() - timedelta(days=30)).isoformat(), (datetime.now() + timedelta(days=60)).isoformat()),
+    )
+    cursor.execute(
+        '''INSERT INTO fundraising_campaigns (title, description, target_amount, animal_id, start_date, status)
+           VALUES (?, ?, ?, ?, ?, 'active')''',
+        ('Операция для Васьки', 'Срочная ветеринарная помощь', 35000, animal_ids[6],
+         datetime.now().isoformat()),
+    )
+
+    for name, amt in [('Зоомагазин «Лапки»', 50000), ('Ветклиника Партнёр', 30000)]:
+        cursor.execute(
+            'INSERT INTO partners (name, amount, partner_type, start_date) VALUES (?, ?, ?, ?)',
+            (name, amt, 'sponsor', datetime.now().isoformat()),
+        )
+
+    cursor.execute(
+        'INSERT INTO events (name, event_date, cost, revenue, notes) VALUES (?, ?, ?, ?, ?)',
+        ('День открытых дверей', (datetime.now() - timedelta(days=45)).isoformat(), 12000, 45000, 'Успешная акция'),
+    )
+    cursor.execute(
+        'INSERT INTO events (name, event_date, cost, revenue, notes) VALUES (?, ?, ?, ?, ?)',
+        ('Благотворительный концерт', (datetime.now() - timedelta(days=90)).isoformat(), 35000, 82000, 'Высокий ROI'),
+    )
+
+    for donor, amt in [('Мария С.', 1000), ('Алексей И.', 1500)]:
+        cursor.execute(
+            '''INSERT INTO recurring_donations (user_name, amount, frequency, next_date, active, created_at)
+               VALUES (?, ?, 'monthly', ?, 1, ?)''',
+            (donor, amt, (datetime.now() + timedelta(days=30)).isoformat(), datetime.now().isoformat()),
+        )
+
+    cursor.execute(
+        '''INSERT INTO service_orders (service_id, client_name, amount, ordered_at, status)
+           VALUES (1, ?, ?, ?, 'completed')''',
+        ('Ирина К.', 5000, (datetime.now() - timedelta(days=10)).isoformat()),
+    )
+
+    for aid in animal_ids[:3]:
+        cursor.execute(
+            '''INSERT INTO vet_appointments (animal_id, scheduled_at, service_type, estimated_cost, status)
+               VALUES (?, ?, ?, ?, 'planned')''',
+            (aid, (datetime.now() + timedelta(days=7 + aid)).isoformat(), 'Осмотр / вакцинация', 2500 + aid * 500),
+        )
 
     conn.commit()
     conn.close()

@@ -82,8 +82,30 @@
         }
         .submit-button:hover {
             background: var(--primary-hover);
-            transform: translateY(-2px);
         }
+        .campaign-list { margin: 1.5rem 0; }
+        .campaign-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .campaign-card h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+        .eco-progress { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+        .eco-progress span { display: block; height: 100%; background: var(--gradient-primary); }
+        .amount-suggestions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0 1rem; }
+        .amount-suggestions button {
+            padding: 0.4rem 0.75rem;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .amount-suggestions button:hover { border-color: var(--primary); color: var(--primary); }
+        .cost-hint { font-size: 0.8rem; color: #718096; margin-bottom: 1rem; }
         @media (max-width: 768px) {
             .donate {
                 margin: 1rem;
@@ -155,11 +177,36 @@
                     {% endfor %}
                 {% endif %}
             {% endwith %}
+            <p class="cost-hint">Содержание одного питомца ≈ <strong>{{ suggested.month }} ₽/мес</strong> ({{ suggested.day }} ₽/день)</p>
+
             <form class="donate-form" method="POST">
+                {% if campaigns %}
+                <div class="campaign-list">
+                    <h3 style="font-size:1rem;margin-bottom:0.75rem">Целевые сборы</h3>
+                    {% for c in campaigns if c.status == 'active' %}
+                    <div class="campaign-card">
+                        <h3>{{ c.title }}</h3>
+                        <p style="font-size:0.85rem;color:#718096">{{ c.raised|int }} / {{ c.target_amount|int }} ₽</p>
+                        <div class="eco-progress"><span style="width:{{ c.progress_pct }}%"></span></div>
+                        <label><input type="radio" name="campaign_id" value="{{ c.id }}"> Поддержать этот сбор</label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="amount-suggestions">
+                    <button type="button" data-amt="{{ suggested.day }}">1 день</button>
+                    <button type="button" data-amt="{{ suggested.week }}">1 неделя</button>
+                    <button type="button" data-amt="{{ suggested.month }}">1 месяц</button>
+                    <button type="button" data-amt="1000">1 000 ₽</button>
+                    <button type="button" data-amt="3000">3 000 ₽</button>
+                </div>
                 <label for="user_name">Ваше имя:</label>
                 <input type="text" id="user_name" name="user_name" required placeholder="Введите ваше имя">
                 <label for="amount">Сумма (₽):</label>
                 <input type="number" id="amount" name="amount" required min="1" placeholder="Введите сумму">
+                <label style="display:flex;align-items:center;gap:0.5rem;margin-top:1rem;font-weight:500">
+                    <input type="checkbox" name="is_recurring" value="1"> Ежемесячное пожертвование
+                </label>
                 <label for="donation_type">Тип пожертвования:</label>
                 <select id="donation_type" name="donation_type" required>
                     <option value="shelter">На приют</option>
@@ -211,13 +258,13 @@
 
         document.getElementById('donation_type').addEventListener('change', function() {
             var animalIdContainer = document.getElementById('animal_id_container');
-            if (this.value === 'animal') {
-                animalIdContainer.style.display = 'block';
-            } else {
-                animalIdContainer.style.display = 'none';
-            }
+            animalIdContainer.style.display = this.value === 'animal' ? 'block' : 'none';
+        });
+        document.querySelectorAll('.amount-suggestions button').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.getElementById('amount').value = btn.dataset.amt;
+            });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93d900bba8f4b067',t:'MTc0Njg3NTU2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
