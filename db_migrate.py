@@ -177,3 +177,69 @@ def migrate_database(db_path=DATABASE):
 
     conn.commit()
     conn.close()
+    seed_if_empty(db_path)
+
+
+def seed_if_empty(db_path=DATABASE):
+    """Восстановить пользователей и животных, если БД пустая (после сбоя create_db)."""
+    from werkzeug.security import generate_password_hash
+    from datetime import datetime, timedelta
+    import random
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT COUNT(*) FROM users')
+        if cursor.fetchone()[0] > 0:
+            return False
+    except sqlite3.OperationalError:
+        conn.close()
+        return False
+
+    cursor.execute(
+        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        ('admin', generate_password_hash('admin123'), 'admin'),
+    )
+    cursor.execute(
+        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        ('volunteer1', generate_password_hash('volunteer123'), 'volunteer'),
+    )
+    cursor.execute(
+        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        ('guest1', generate_password_hash('guest123'), 'guest'),
+    )
+
+    animals_data = [
+        ('Murzik', 'Friendly cat', 'Looking for a home', '2 years', 'Male', 'Yes', 'Yes', 'images/murzik.jpg'),
+        ('Barsik', 'Playful kitten', 'Looking for a home', '6 months', 'Male', 'No', 'No', 'images/barsik.jpg'),
+        ('Sharik', 'Cheerful dog', 'Looking for a home', '3 years', 'Male', 'Yes', 'No', 'images/sharik.jpg'),
+        ('Мурка', 'Ласковая кошка', 'Looking for a home', '1 year', 'Female', 'Yes', 'Yes', None),
+        ('Васька', 'Спокойный кот', 'In treatment', '5 years', 'Male', 'Yes', 'Yes', None),
+        ('Джесси', 'Игривая собака', 'Looking for a home', '1 year', 'Female', 'Yes', 'Yes', None),
+    ]
+    for animal in animals_data:
+        cursor.execute(
+            'INSERT INTO animals (name, description, status, age, gender, vaccinated, sterilized, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            animal,
+        )
+
+    cursor.execute('SELECT COUNT(*) FROM news')
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            'INSERT INTO news (title, content, date) VALUES (?, ?, ?)',
+            ('Добро пожаловать', 'Приют «Добрые Лапки»', datetime.now().strftime('%Y-%m-%d')),
+        )
+
+    cursor.execute('SELECT id FROM animals')
+    animal_ids = [row[0] for row in cursor.fetchall()]
+    base_date = datetime.now() - timedelta(days=90)
+    for _ in range(30):
+        date = base_date + timedelta(days=random.randint(0, 90))
+        cursor.execute(
+            'INSERT INTO donations (user_name, amount, donation_type, animal_id, donated_at) VALUES (?, ?, ?, ?, ?)',
+            ('Донор', random.choice([500, 1000, 2000]), 'shelter', None, date.isoformat()),
+        )
+
+    conn.commit()
+    conn.close()
+    return True

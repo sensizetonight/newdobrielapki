@@ -225,6 +225,9 @@ def create_db():
         cursor.execute('INSERT INTO inventory (item_name, category, quantity, unit, unit_price, added_at) VALUES (?, ?, ?, ?, ?, ?)',
                        (item[0], item[1], round(quantity, 2), item[3], item[4], date.isoformat()))
 
+    conn.commit()
+    conn.close()
+
     from db_migrate import migrate_database
     migrate_database(DATABASE)
 

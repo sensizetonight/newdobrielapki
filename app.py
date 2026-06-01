@@ -16,7 +16,7 @@ from analytics_engine import (
     forecast_ensemble,
     future_month_labels,
 )
-from db_migrate import migrate_database
+from db_migrate import migrate_database, seed_if_empty
 from economic_engine import (
     BUDGET_CATEGORIES,
     get_full_economic_dashboard,
@@ -33,6 +33,8 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 DATABASE = 'shelter.db'
 migrate_database(DATABASE)
+if seed_if_empty(DATABASE):
+    print('Database was empty — default users and animals restored.')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -974,7 +976,7 @@ def export_economics_csv():
     writer.writerow(['Стоимость содержания/мес', eco['cost_per_animal']['monthly_per_animal']])
     writer.writerow([])
     writer.writerow(['Бюджет', eco['budget']['year_month'], 'План', 'Факт'])
-    for row in eco['budget']['items']:
+    for row in eco['budget']['rows']:
         writer.writerow([row['label'], '', row['planned'], row['actual']])
     writer.writerow([])
     writer.writerow(['Сценарий', 'Доход', 'Расход', 'Баланс'])

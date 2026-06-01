@@ -126,7 +126,7 @@
                 <table class="eco-table">
                     <thead><tr><th>Статья</th><th>План</th><th>Факт</th><th>Отклонение</th><th>%</th></tr></thead>
                     <tbody>
-                        {% for row in e.budget.items %}
+                        {% for row in e.budget.rows %}
                         <tr>
                             <td>{{ row.label }}</td>
                             <td>{{ row.planned|int }} ₽</td>

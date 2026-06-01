@@ -134,8 +134,12 @@ def get_budget_plan_vs_fact(year_month: str | None = None):
             'variance': variance,
             'pct': round((fact / plan * 100) if plan else 0, 1),
         })
-    return {'year_month': ym, 'items': items, 'total_planned': sum(i['planned'] for i in items),
-            'total_actual': sum(i['actual'] for i in items)}
+    return {
+        'year_month': ym,
+        'rows': items,
+        'total_planned': sum(i['planned'] for i in items),
+        'total_actual': sum(i['actual'] for i in items),
+    }
 
 
 def get_cost_per_animal():
