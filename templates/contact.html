@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Связаться с нами</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/modals.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        .contact {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2.5rem;
+            background-color: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .contact h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .contact-form label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        .contact-form label:first-child {
+            margin-top: 0;
+        }
+
+        .contact-form input,
+        .contact-form textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #E2E8F0;
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+            color: var(--text);
+            background: #F7FAFC;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-form input:focus,
+        .contact-form textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            background: var(--surface);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .contact-form textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .submit-button {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: var(--surface);
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .contact {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+
+            .contact h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="menu-toggle" id="menuToggle" aria-label="Меню">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <h1>Добрые Лапки</h1>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </header>
+    <div class="mobile-menu" id="mobileMenu">
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+    <main>
+        <div class="contact">
+            <h2>Связаться с нами</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <form class="contact-form" method="POST">
+                <label for="name">Имя:</label>
+                <input type="text" id="name" name="name" required placeholder="Введите ваше имя">
+                <label for="email">Электронная почта:</label>
+                <input type="email" id="email" name="email" required placeholder="Введите ваш email">
+                <label for="message">Сообщение:</label>
+                <textarea id="message" name="message" required placeholder="Введите ваше сообщение"></textarea>
+                <button type="submit" class="submit-button">Отправить</button>
+            </form>
+        </div>
+    </main>
+    <footer>
+        <p>© 2025 Добрые Лапки. Все права защищены.</p>
+    </footer>
+    <script>
+        // Бургер-меню
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                menuToggle.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+            });
+            
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+            
+            mobileMenu.addEventListener('click', function(e) {
+                if (e.target === mobileMenu) {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

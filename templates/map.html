@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/map.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/modals.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background-color: #F8FAF5;
+            color: #2D3748;
+        }
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .map-page {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        .map-card {
+            flex: 2;
+            min-width: 300px;
+            background: #FFFFFF;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+        }
+        .map-card h2 {
+            margin: 0 0 1.5rem;
+            color: #2D3748;
+            font-size: 1.8rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid rgba(102, 126, 234, 0.2);
+        }
+        .map-container {
+            width: 100%;
+            height: 500px;
+            border-radius: 8px;
+        }
+        .add-mark-form {
+            flex: 1;
+            min-width: 300px;
+            background: #FFFFFF;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+        }
+        .add-mark-form h2 {
+            margin: 0 0 1.5rem;
+            color: #2D3748;
+            font-size: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid rgba(102, 126, 234, 0.2);
+        }
+        .add-mark-form label {
+            display: block;
+            margin: 1.5rem 0 0.75rem 0;
+            color: #2D3748;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .add-mark-form label:first-of-type {
+            margin-top: 0;
+        }
+        .add-mark-form input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #E2E8F0;
+            border-radius: var(--border-radius);
+            margin-bottom: 0.5rem;
+            box-sizing: border-box;
+            background: #F7FAFC;
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+        .add-mark-form input:focus {
+            border-color: var(--primary);
+            outline: none;
+            background: var(--surface);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .submit-button {
+            background: var(--primary);
+            color: #FFFFFF;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3);
+        }
+        .submit-button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(102, 126, 234, 0.4);
+        }
+        .submit-button:hover {
+            background-color: #D68A50;
+        }
+        /* Модальные окна используют modals.css */
+        .modal-overlay {
+            /* Используется класс .modal из modals.css */
+        }
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #8A7A6A;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        .close-button:hover {
+            color: #5C4033;
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .modal-content p {
+            margin: 0 0 1rem;
+            color: #5C4033;
+        }
+        .modal-content img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .delete-button {
+            background-color: #A62323;
+            color: #FFFFFF;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+        .delete-button:hover {
+            background-color: #8B1E1E;
+        }
+        .flash-message {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .flash-message.success {
+            background-color: #D4E4D2;
+            color: #355E3B;
+        }
+        .flash-message.error {
+            background-color: #F4D7D7;
+            color: #A62323;
+        }
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 768px) {
+            main {
+                padding: 0.5rem;
+                margin: 1rem auto;
+            }
+
+            .map-page {
+                flex-direction: column;
+            }
+
+            .map-card, .add-mark-form {
+                flex: 1;
+                min-width: 100%;
+                width: 100%;
+            }
+
+            .map-container {
+                height: 300px;
+            }
+
+            .map-card h2, .add-mark-form h2 {
+                font-size: 1.25rem;
+            }
+
+            .add-mark-form input,
+            .add-mark-form textarea,
+            .add-mark-form button {
+                width: 100%;
+            }
+
+            .modal-content {
+                max-width: 90% !important;
+                margin: 1rem !important;
+                padding: 1rem !important;
+            }
+
+            .map-card h2, .add-mark-form h2 {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .map-container {
+                height: 250px;
+            }
+
+            .add-mark-form {
+                padding: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="menu-toggle" id="menuToggle" aria-label="Меню">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <h1>Добрые Лапки</h1>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </header>
+    <div class="mobile-menu" id="mobileMenu">
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+    <main>
+        <section class="map-page">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <div class="map-card">
+                <h2>Карта животных</h2>
+                <p>Нажмите на метки, чтобы увидеть подробности, или добавьте метку бродячего животного, кликнув на карту (только для админов/волонтёров).</p>
+                <div id="map" class="map-container"></div>
+            </div>
+            {% if current_user.is_authenticated and current_user.role in ['admin', 'volunteer'] %}
+            <form method="POST" class="add-mark-form" enctype="multipart/form-data">
+                <h2>Добавить метку бродячего животного</h2>
+                <label for="description">Описание</label>
+                <input type="text" id="description" name="description" required placeholder="Введите описание">
+                <label for="lat">Широта</label>
+                <input type="text" id="lat" name="lat" required placeholder="Кликните на карту" readonly>
+                <label for="lon">Долгота</label>
+                <input type="text" id="lon" name="lon" required placeholder="Кликните на карту" readonly>
+                <label for="photo">Фото</label>
+                <input type="file" id="photo" name="photo" accept="image/*">
+                <button type="submit" class="submit-button">Добавить метку</button>
+            </form>
+            {% endif %}
+        </section>
+        <div id="modalOverlay" class="modal">
+            <div class="modal-content">
+                <button id="closeModal" class="close-button">×</button>
+                <p id="modalDescription"></p>
+                <img id="modalImage" alt="Фото метки" style="display: none;">
+                {% if current_user.is_authenticated and current_user.role in ['admin', 'volunteer'] %}
+                <form id="modalDeleteForm" method="POST">
+                    <button type="submit" class="delete-button">Удалить метку</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>© 2025 Добрые Лапки. Все права защищены.</p>
+    </footer>
+    <script>
+        ymaps.ready(init);
+        function init() {
+            var myMap = new ymaps.Map("map", {
+                center: [52.721295, 41.452750],
+                zoom: 10
+            });
+            var strayAnimals = [
+                {% for animal in stray_animals %}
+                    {
+                        id: {{ animal.id }},
+                        lat: {{ animal.lat }},
+                        lon: {{ animal.lon }},
+                        description: "{{ animal.description }}",
+                        photo_url: {{ animal.photo_url | tojson if animal.photo_url else "null" }}
+                    }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+            var placemarks = [];
+            var modalOverlay = document.getElementById('modalOverlay');
+            var modalDescription = document.getElementById('modalDescription');
+            var modalImage = document.getElementById('modalImage');
+            var modalDeleteForm = document.getElementById('modalDeleteForm');
+            var closeModalButton = document.getElementById('closeModal');
+
+            function closeModal() {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            closeModalButton.addEventListener('click', closeModal);
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    closeModal();
+                }
+            });
+
+            strayAnimals.forEach(function(animal) {
+                var placemark = new ymaps.Placemark([animal.lat, animal.lon], {
+                    hintContent: animal.description
+                }, {
+                    iconLayout: 'default#image',
+                    iconImageHref: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                    iconImageSize: [30, 30],
+                    iconImageOffset: [-15, -15]
+                });
+
+                placemark.events.add('click', function(e) {
+                    modalDescription.innerHTML = '<strong>' + animal.description + '</strong>';
+                    if (animal.photo_url) {
+                        modalImage.src = animal.photo_url;
+                        modalImage.style.display = 'block';
+                    } else {
+                        modalImage.style.display = 'none';
+                    }
+                    modalDeleteForm.action = '/delete_mark/' + animal.id;
+                    modalOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                });
+
+                myMap.geoObjects.add(placemark);
+                placemarks.push(placemark);
+            });
+
+            {% if current_user.is_authenticated and current_user.role in ['admin', 'volunteer'] %}
+            myMap.events.add('click', function (e) {
+                var coords = e.get('coords');
+                document.getElementById('lat').value = coords[0].toFixed(4);
+                document.getElementById('lon').value = coords[1].toFixed(4);
+                closeModal();
+            });
+            {% endif %}
+        }
+
+        // Бургер-меню
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                menuToggle.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+            });
+            
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+            
+            mobileMenu.addEventListener('click', function(e) {
+                if (e.target === mobileMenu) {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

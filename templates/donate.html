@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пожертвовать</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/modals.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        .donate {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2.5rem;
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+        }
+        .donate h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .donate-form label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 1.5rem 0 0.75rem 0;
+        }
+        .donate-form label:first-child {
+            margin-top: 0;
+        }
+        .donate-form input,
+        .donate-form select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #E2E8F0;
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+            color: var(--text);
+            background: #F7FAFC;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            margin-bottom: 0.5rem;
+        }
+        .donate-form input:focus,
+        .donate-form select:focus {
+            border-color: var(--primary);
+            outline: none;
+            background: var(--surface);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .donate-form select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232D3748' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+        #animal_id_container {
+            display: none;
+            margin-bottom: 1rem;
+        }
+        .submit-button {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: var(--surface);
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3);
+        }
+        .submit-button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        @media (max-width: 768px) {
+            .donate {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            .donate h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="menu-toggle" id="menuToggle" aria-label="Меню">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <h1>Добрые Лапки</h1>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button active"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </header>
+    <div class="mobile-menu" id="mobileMenu">
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+    <main>
+        <div class="donate">
+            <h2>Сделать пожертвование</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <form class="donate-form" method="POST">
+                <label for="user_name">Ваше имя:</label>
+                <input type="text" id="user_name" name="user_name" required placeholder="Введите ваше имя">
+                <label for="amount">Сумма (₽):</label>
+                <input type="number" id="amount" name="amount" required min="1" placeholder="Введите сумму">
+                <label for="donation_type">Тип пожертвования:</label>
+                <select id="donation_type" name="donation_type" required>
+                    <option value="shelter">На приют</option>
+                    <option value="animal">На животное</option>
+                </select>
+                <div id="animal_id_container">
+                    <label for="animal_id">Выберите животное:</label>
+                    <select id="animal_id" name="animal_id">
+                        {% for animal in animals %}
+                            <option value="{{ animal.id }}">{{ animal.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="submit-button">Пожертвовать</button>
+            </form>
+        </div>
+    </main>
+    <footer>
+        <p>© 2025 Добрые Лапки. Все права защищены.</p>
+    </footer>
+    <script>
+        // Бургер-меню
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                menuToggle.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+            });
+            
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+            
+            mobileMenu.addEventListener('click', function(e) {
+                if (e.target === mobileMenu) {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        document.getElementById('donation_type').addEventListener('change', function() {
+            var animalIdContainer = document.getElementById('animal_id_container');
+            if (this.value === 'animal') {
+                animalIdContainer.style.display = 'block';
+            } else {
+                animalIdContainer.style.display = 'none';
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93d900bba8f4b067',t:'MTc0Njg3NTU2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>

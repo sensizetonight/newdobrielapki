@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/modals.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+    
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .dashboard {
+            background: #FFFFFF;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+        .dashboard h2 {
+            font-size: 2rem;
+            color: #5C4033;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid rgba(102, 126, 234, 0.2);
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #E5E7EB;
+            margin-bottom: 2rem;
+            gap: 0.5rem;
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #8A7A6A;
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+        }
+        .tab.active {
+            color: #5C4033;
+            border-bottom: 3px solid #E4A663;
+        }
+        .tab:hover {
+            color: #5C4033;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .requests-table, .donations-table, .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .requests-table th, .requests-table td,
+        .donations-table th, .donations-table td,
+        .inventory-table th, .inventory-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .requests-table th, .donations-table th, .inventory-table th {
+            background-color: #F5F5DC;
+            color: #5C4033;
+            font-weight: 600;
+        }
+        .requests-table td, .donations-table td, .inventory-table td {
+            color: #5C4033;
+        }
+        .requests-table select {
+            padding: 0.5rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            background-color: #FFFFFF;
+            color: #5C4033;
+            cursor: pointer;
+        }
+        .requests-table select option[value="pending"] {
+            color: #8A7A6A;
+        }
+        .requests-table select option[value="approved"] {
+            color: #355E3B;
+        }
+        .requests-table select option[value="rejected"] {
+            color: #A62323;
+        }
+        .stats {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+        .stats p {
+            margin: 0.75rem 0;
+            font-size: 1rem;
+            color: #5C4033;
+            font-weight: 500;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .add-item-button, .edit-button, .delete-button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .add-item-button {
+            background-color: #E4A663;
+            color: #FFFFFF;
+        }
+        .add-item-button:hover {
+            background-color: #D68A50;
+        }
+        .edit-button {
+            background-color: #355E3B;
+            color: #FFFFFF;
+        }
+        .edit-button:hover {
+            background-color: #2A4A2F;
+        }
+        .delete-button {
+            background-color: #A62323;
+            color: #FFFFFF;
+        }
+        .delete-button:hover {
+            background-color: #8B1E1E;
+        }
+        /* Модальные окна используют modals.css */
+        .modal-content h2 {
+            margin-top: 0;
+            color: #5C4033;
+        }
+        .modal-content label {
+            display: block;
+            margin: 0.5rem 0;
+            color: #5C4033;
+        }
+        .modal-content input, .modal-content select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        .form-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .submit-button {
+            background-color: #E4A663;
+            color: #FFFFFF;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .submit-button:hover {
+            background-color: #D68A50;
+        }
+        .cancel-button {
+            background-color: #8A7A6A;
+            color: #FFFFFF;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .cancel-button:hover {
+            background-color: #6B5A4A;
+        }
+        .flash-message {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .flash-message.success {
+            background-color: #D4E4D2;
+            color: #355E3B;
+        }
+        .flash-message.error {
+            background-color: #F4D7D7;
+            color: #A62323;
+        }
+        .filter-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-container input, .filter-container select {
+            padding: 0.5rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .highlight {
+            background-color: #FFF3E0;
+            transition: background-color 1s ease;
+        }
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 768px) {
+            main {
+                padding: 0.5rem;
+                margin: 1rem auto;
+            }
+
+            .dashboard {
+                padding: 1rem;
+            }
+
+            .dashboard h2 {
+                font-size: 1.5rem;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+                overflow-x: auto;
+            }
+
+            .tab {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+
+            /* Адаптивные таблицы - горизонтальная прокрутка */
+            .requests-table, .donations-table, .inventory-table {
+                font-size: 0.8rem;
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .requests-table thead, .donations-table thead, .inventory-table thead {
+                display: table-header-group;
+            }
+
+            .requests-table tbody, .donations-table tbody, .inventory-table tbody {
+                display: table-row-group;
+            }
+
+            .requests-table tr, .donations-table tr, .inventory-table tr {
+                display: table-row;
+            }
+
+            .requests-table th, .requests-table td,
+            .donations-table th, .donations-table td,
+            .inventory-table th, .inventory-table td {
+                display: table-cell;
+                padding: 0.5rem;
+                white-space: nowrap;
+                min-width: 80px;
+            }
+
+            .button-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .filter-container {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .filter-container input, .filter-container select {
+                width: 100%;
+            }
+
+            .add-item-button {
+                width: 100%;
+            }
+
+            .modal-content {
+                max-width: 90% !important;
+                margin: 1rem !important;
+                padding: 1rem !important;
+            }
+
+            .stats {
+                padding: 0.75rem;
+            }
+
+            .stats p {
+                font-size: 0.875rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard h2 {
+                font-size: 1.25rem;
+            }
+
+            .tab {
+                padding: 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .requests-table th, .requests-table td,
+            .donations-table th, .donations-table td,
+            .inventory-table th, .inventory-table td {
+                padding: 0.25rem;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="menu-toggle" id="menuToggle" aria-label="Меню">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <h1>Добрые Лапки</h1>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span style="color: #5C4033; margin: 0 1rem;">Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </header>
+    <div class="mobile-menu" id="mobileMenu">
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+    <main>
+        <div class="dashboard">
+            <h2>Личный кабинет администратора</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <div style="margin-bottom: 1rem;">
+                <a href="{{ url_for('analytics_dashboard') }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; transition: transform 0.2s ease;">
+                    <i class="fas fa-chart-line"></i> Перейти к аналитике
+                </a>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="requests">Заявки на усыновление</div>
+                <div class="tab" data-tab="donations">Пожертвования</div>
+                <div class="tab" data-tab="inventory">Номенклатура</div>
+            </div>
+            <div id="requests" class="tab-content active">
+                <h3>Заявки на усыновление</h3>
+                {% if requests %}
+                <table class="requests-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Животное</th>
+                            <th>Имя пользователя</th>
+                            <th>Телефон</th>
+                            <th>Email</th>
+                            <th>Дата подачи</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests %}
+                        <tr>
+                            <td>{{ req.id }}</td>
+                            <td>{{ req.animal_name }}</td>
+                            <td>{{ req.user_name }}</td>
+                            <td>{{ req.phone }}</td>
+                            <td>{{ req.email }}</td>
+                            <td>{{ req.submitted_at }}</td>
+                            <td>
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="update_request">
+                                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                                    <select name="status" onchange="this.form.submit()">
+                                        <option value="pending" {% if req.status == 'pending' %}selected{% endif %}>В ожидании</option>
+                                        <option value="approved" {% if req.status == 'approved' %}selected{% endif %}>Одобрено</option>
+                                        <option value="rejected" {% if req.status == 'rejected' %}selected{% endif %}>Отклонено</option>
+                                    </select>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Заявок на усыновление пока нет.</p>
+                {% endif %}
+            </div>
+            <div id="donations" class="tab-content">
+                <h3>Пожертвования</h3>
+                <div class="stats">
+                    <p><strong>Общая сумма:</strong> {{ donation_stats.total_amount }} руб.</p>
+                    <p><strong>Количество пожертвований:</strong> {{ donation_stats.donation_count }}</p>
+                    <p><strong>Средняя сумма:</strong> {{ donation_stats.avg_donation }} руб.</p>
+                </div>
+                {% if donations %}
+                <table class="donations-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя пользователя</th>
+                            <th>Сумма (руб.)</th>
+                            <th>Тип</th>
+                            <th>Животное</th>
+                            <th>Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for donation in donations %}
+                        <tr>
+                            <td>{{ donation.id }}</td>
+                            <td>{{ donation.user_name }}</td>
+                            <td>{{ donation.amount }}</td>
+                            <td>{{ 'На приют' if donation.donation_type == 'shelter' else 'На животное' }}</td>
+                            <td>{{ donation.animal_name or '-' }}</td>
+                            <td>{{ donation.donated_at }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Пожертвований пока нет.</p>
+                {% endif %}
+            </div>
+            <div id="inventory" class="tab-content">
+                <h3>Номенклатура</h3>
+                <div class="stats">
+                    <p><strong>Общая стоимость:</strong> {{ inventory_stats.total_value }} руб.</p>
+                    <p><strong>Количество позиций:</strong> {{ inventory_stats.item_count }}</p>
+                </div>
+                <div class="button-container">
+                    <div class="filter-container">
+                        <input type="text" id="search" name="search" placeholder="Поиск по наименованию" value="{{ search or '' }}">
+                        <select id="category" name="category">
+                            <option value="">Все категории</option>
+                            <option value="food" {% if category == 'food' %}selected{% endif %}>Корм</option>
+                            <option value="medicine" {% if category == 'medicine' %}selected{% endif %}>Лекарства</option>
+                            <option value="supplies" {% if category == 'supplies' %}selected{% endif %}>Принадлежности</option>
+                            <option value="other" {% if category == 'other' %}selected{% endif %}>Прочее</option>
+                        </select>
+                    </div>
+                    <button class="add-item-button" onclick="openModal('add-inventory-modal')">+ Добавить единицу</button>
+                </div>
+                {% if inventory %}
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Наименование</th>
+                            <th>Категория</th>
+                            <th>Количество</th>
+                            <th>Единица</th>
+                            <th>Стоимость (руб.)</th>
+                            <th>Сумма (руб.)</th>
+                            <th>Дата добавления</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inventory %}
+                        <tr id="item-{{ item.id }}">
+                            <td>{{ item.id }}</td>
+                            <td>{{ item.item_name }}</td>
+                            <td>{{ {'food': 'Корм', 'medicine': 'Лекарства', 'supplies': 'Принадлежности', 'other': 'Прочее'}[item.category] }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.unit }}</td>
+                            <td>{{ item.unit_price }}</td>
+                            <td>{{ item.total_price }}</td>
+                            <td>{{ item.added_at }}</td>
+                            <td>
+                                <button class="edit-button" onclick="openModal('edit-inventory-modal-{{ item.id }}')">Редактировать</button>
+                                <button class="delete-button" onclick="openModal('delete-inventory-modal-{{ item.id }}')">Удалить</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Номенклатура пока пуста.</p>
+                {% endif %}
+                <div class="modal" id="add-inventory-modal">
+                    <div class="modal-content">
+                        <h2>Добавить единицу номенклатуры</h2>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="add_inventory">
+                            <label for="item_name">Наименование</label>
+                            <input type="text" id="item_name" name="item_name" required placeholder="Введите наименование">
+                            <label for="category">Категория</label>
+                            <select id="category" name="category" required>
+                                <option value="food">Корм</option>
+                                <option value="medicine">Лекарства</option>
+                                <option value="supplies">Принадлежности</option>
+                                <option value="other">Прочее</option>
+                            </select>
+                            <label for="quantity">Количество</label>
+                            <input type="number" id="quantity" name="quantity" required placeholder="Введите количество" step="0.01" min="0">
+                            <label for="unit">Единица измерения</label>
+                            <input type="text" id="unit" name="unit" required placeholder="Например, кг, шт">
+                            <label for="unit_price">Стоимость за единицу (руб.)</label>
+                            <input type="number" id="unit_price" name="unit_price" required placeholder="Введите стоимость" step="0.01" min="0">
+                            <div class="form-buttons">
+                                <button type="submit" class="submit-button">Добавить</button>
+                                <button type="button" class="cancel-button" onclick="closeModal('add-inventory-modal')">Отмена</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% for item in inventory %}
+                <div class="modal" id="edit-inventory-modal-{{ item.id }}">
+                    <div class="modal-content">
+                        <h2>Редактировать единицу</h2>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="edit_inventory">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            <label for="item_name-{{ item.id }}">Наименование</label>
+                            <input type="text" id="item_name-{{ item.id }}" name="item_name" required value="{{ item.item_name }}">
+                            <label for="category-{{ item.id }}">Категория</label>
+                            <select id="category-{{ item.id }}" name="category" required>
+                                <option value="food" {% if item.category == 'food' %}selected{% endif %}>Корм</option>
+                                <option value="medicine" {% if item.category == 'medicine' %}selected{% endif %}>Лекарства</option>
+                                <option value="supplies" {% if item.category == 'supplies' %}selected{% endif %}>Принадлежности</option>
+                                <option value="other" {% if item.category == 'other' %}selected{% endif %}>Прочее</option>
+                            </select>
+                            <label for="quantity-{{ item.id }}">Количество</label>
+                            <input type="number" id="quantity-{{ item.id }}" name="quantity" required value="{{ item.quantity }}" step="0.01" min="0">
+                            <label for="unit-{{ item.id }}">Единица измерения</label>
+                            <input type="text" id="unit-{{ item.id }}" name="unit" required value="{{ item.unit }}">
+                            <label for="unit_price-{{ item.id }}">Стоимость за единицу (руб.)</label>
+                            <input type="number" id="unit_price-{{ item.id }}" name="unit_price" required value="{{ item.unit_price }}" step="0.01" min="0">
+                            <div class="form-buttons">
+                                <button type="submit" class="submit-button">Сохранить</button>
+                                <button type="button" class="cancel-button" onclick="closeModal('edit-inventory-modal-{{ item.id }}')">Отмена</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal" id="delete-inventory-modal-{{ item.id }}">
+                    <div class="modal-content">
+                        <h2>Подтверждение удаления</h2>
+                        <p>Вы уверены, что хотите удалить "{{ item.item_name }}"?</p>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="delete_inventory">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            <div class="form-buttons">
+                                <button type="submit" class="submit-button">Удалить</button>
+                                <button type="button" class="cancel-button" onclick="closeModal('delete-inventory-modal-{{ item.id }}')">Отмена</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>© 2025 Добрые Лапки. Все права защищены.</p>
+    </footer>
+    <script>
+        function openModal(modalId) {
+            var modal = document.getElementById(modalId);
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            var modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal(modal.id);
+                }
+            });
+        });
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                this.classList.add('active');
+                document.getElementById(this.getAttribute('data-tab')).classList.add('active');
+            });
+        });
+
+        // Фильтрация и поиск
+        document.getElementById('search').addEventListener('input', function() {
+            var search = this.value;
+            var category = document.getElementById('category').value;
+            window.location.href = '{{ url_for("admin_dashboard") }}?search=' + encodeURIComponent(search) + '&category=' + encodeURIComponent(category);
+        });
+
+        document.getElementById('category').addEventListener('change', function() {
+            var category = this.value;
+            var search = document.getElementById('search').value;
+            window.location.href = '{{ url_for("admin_dashboard") }}?search=' + encodeURIComponent(search) + '&category=' + encodeURIComponent(category);
+        });
+
+        // Подсветка измененной строки
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if (this.querySelector('input[name="action"]').value === 'edit_inventory') {
+                    var itemId = this.querySelector('input[name="item_id"]').value;
+                    var row = document.getElementById('item-' + itemId);
+                    if (row) {
+                        row.classList.add('highlight');
+                        setTimeout(() => row.classList.remove('highlight'), 2000);
+                    }
+                }
+            });
+        });
+
+        // Бургер-меню
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                menuToggle.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+            });
+            
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+            
+            mobileMenu.addEventListener('click', function(e) {
+                if (e.target === mobileMenu) {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

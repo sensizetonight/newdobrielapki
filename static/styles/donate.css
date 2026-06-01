@@ -1,0 +1,80 @@
+.donate {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: #FFFFFF;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.donate h2 {
+    font-size: 2rem;
+    color: #5C4033;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.donate-form label {
+    display: block;
+    font-size: 1rem;
+    color: #5C4033;
+    margin: 0.75rem 0 0.25rem;
+}
+
+.donate-form input,
+.donate-form select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #5C4033;
+    background: #F9FAFB;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+}
+
+.donate-form input:focus,
+.donate-form select:focus {
+    border-color: #E4A663;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(228, 166, 99, 0.1);
+}
+
+.donate-form .submit-button {
+    background-color: #E4A663;
+    color: #FFFFFF;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 9999px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.donate-form .submit-button:hover {
+    background-color: #D68A50;
+}
+
+.flash-message {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.flash-message.success {
+    background-color: #D4E4D2;
+    color: #355E3B;
+}
+
+.flash-message.error {
+    background-color: #F4D7D7;
+    color: #A62323;
+}
+
+#animal_id_container {
+    display: none;
+}

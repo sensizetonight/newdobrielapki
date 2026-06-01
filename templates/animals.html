@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/animals.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/modals.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>    
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .button-container {
+            text-align: right;
+            margin-bottom: 1rem;
+        }
+        .add-animal-button {
+            padding: 0.875rem 1.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #FFFFFF;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3);
+            font-size: 1rem;
+        }
+        .add-animal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px -3px rgba(102, 126, 234, 0.4);
+        }
+        .edit-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        .edit-button:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .adopt-button, .donate-button {
+            background-color: #E4A663;
+            color: #FFFFFF;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        .adopt-button:hover, .donate-button:hover {
+            background-color: #D68A50;
+        }
+        /* Модальные окна используют modals.css */
+        .modal-content h2 {
+            margin-top: 0;
+            color: #5C4033;
+        }
+        .modal-content label {
+            display: block;
+            margin: 0.5rem 0;
+            color: #5C4033;
+        }
+        .modal-content input, .modal-content textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        .form-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .submit-button {
+            background-color: #E4A663;
+            color: #FFFFFF;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .submit-button:hover {
+            background-color: #D68A50;
+        }
+        .cancel-button {
+            background-color: #8A7A6A;
+            color: #FFFFFF;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .cancel-button:hover {
+            background-color: #6B5A4A;
+        }
+        .flash-message {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .flash-message.success {
+            background-color: #D4E4D2;
+            color: #355E3B;
+        }
+        .flash-message.error {
+            background-color: #F4D7D7;
+            color: #A62323;
+        }
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 768px) {
+            main {
+                padding: 0.5rem;
+                margin: 1rem auto;
+            }
+
+            .button-container {
+                text-align: center;
+            }
+
+            .add-animal-button {
+                width: 100%;
+            }
+
+            .modal-content {
+                max-width: 90%;
+                margin: 1rem;
+            }
+
+            .form-buttons {
+                flex-direction: column;
+            }
+
+            .form-buttons button {
+                width: 100%;
+            }
+
+            .animals h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .animal-card {
+                padding: 0.75rem;
+            }
+
+            .animal-image, .animal-placeholder {
+                width: 120px;
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="menu-toggle" id="menuToggle" aria-label="Меню">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <h1>Добрые Лапки</h1>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span style="color: #5C4033; margin: 0 1rem;">Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </header>
+    <div class="mobile-menu" id="mobileMenu">
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-button {% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Главная</a>
+            <a href="{{ url_for('animals') }}" class="nav-button {% if request.endpoint == 'animals' %}active{% endif %}"><i class="fas fa-paw"></i> Животные</a>
+            <a href="{{ url_for('map') }}" class="nav-button {% if request.endpoint == 'map' %}active{% endif %}"><i class="fas fa-map"></i> Карта</a>
+            <a href="{{ url_for('contact') }}" class="nav-button {% if request.endpoint == 'contact' %}active{% endif %}"><i class="fas fa-envelope"></i> Связаться с нами</a>
+            <a href="{{ url_for('donate') }}" class="nav-button {% if request.endpoint == 'donate' %}active{% endif %}"><i class="fas fa-heart"></i> Пожертвовать</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-button {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fas fa-user-shield"></i> Админ-панель</a>
+            <a href="{{ url_for('analytics_dashboard') }}" class="nav-button {% if request.endpoint == 'analytics_dashboard' %}active{% endif %}"><i class="fas fa-chart-line"></i> Аналитика</a>
+            {% endif %}
+        </nav>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Привет, {{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="nav-button"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-button"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="{{ url_for('register') }}" class="nav-button"><i class="fas fa-user-plus"></i> Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+    <main>
+        <div class="animals">
+            <h2>Наши животные</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% if current_user.is_authenticated and current_user.role in ['admin', 'volunteer'] %}
+            <div class="button-container">
+                <button class="add-animal-button" onclick="openModal('add-animal-modal')">+ Добавить животное</button>
+            </div>
+            <div class="modal" id="add-animal-modal">
+                <div class="modal-content">
+                    <h2>Добавить животное</h2>
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="action" value="add">
+                        <label for="name">Имя</label>
+                        <input type="text" id="name" name="name" required placeholder="Введите имя">
+                        <label for="description">Описание</label>
+                        <input type="text" id="description" name="description" placeholder="Введите описание">
+                        <label for="status">Статус</label>
+                        <input type="text" id="status" name="status" required placeholder="Введите статус" value="Ищет дом">
+                        <label for="age">Возраст</label>
+                        <input type="text" id="age" name="age" placeholder="Введите возраст">
+                        <label for="gender">Пол</label>
+                        <input type="text" id="gender" name="gender" placeholder="Введите пол" value="Не указан">
+                        <label for="vaccinated">Вакцинирован</label>
+                        <input type="text" id="vaccinated" name="vaccinated" placeholder="Да/Нет" value="Нет">
+                        <label for="sterilized">Стерилизован</label>
+                        <input type="text" id="sterilized" name="sterilized" placeholder="Да/Нет" value="Нет">
+                        <label for="photo">Фото</label>
+                        <input type="file" id="photo" name="photo" accept="image/*">
+                        <div class="form-buttons">
+                            <button type="submit" class="submit-button">Добавить</button>
+                            <button type="button" class="cancel-button" onclick="closeModal('add-animal-modal')">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            <div class="animal-grid">
+                {% for animal in animals %}
+                    <div class="animal-card" style="position: relative;">
+                        {% if current_user.is_authenticated and current_user.role in ['admin', 'volunteer'] %}
+                        <button class="edit-button" onclick="openModal('edit-animal-modal-{{ animal.id }}')">✏️</button>
+                        {% endif %}
+                        {% if animal.photo_url %}
+                            <img src="{{ url_for('static', filename=animal.photo_url) }}" alt="Фото {{ animal.name }}" class="animal-image">
+                        {% else %}
+                            <div class="animal-placeholder"></div>
+                        {% endif %}
+                        <div class="animal-info">
+                            <h3>{{ animal.name }}</h3>
+                            <p style="margin-bottom: 1rem; color: #6B7280; font-style: italic;">{{ animal.description or 'Нет описания' }}</p>
+                            <span class="status-badge"><i class="fas fa-info-circle"></i> {{ animal.status }}</span>
+                            <div class="extra-info">
+                                <p><i class="fas fa-birthday-cake" style="color: var(--primary);"></i> <strong>Возраст:</strong> {{ animal.age or 'Не указан' }}</p>
+                                <p><i class="fas fa-venus-mars" style="color: var(--primary);"></i> <strong>Пол:</strong> {{ animal.gender or 'Не указан' }}</p>
+                                <p><i class="fas fa-syringe" style="color: var(--primary);"></i> <strong>Вакцинирован:</strong> {{ animal.vaccinated or 'Нет' }}</p>
+                                <p><i class="fas fa-heartbeat" style="color: var(--primary);"></i> <strong>Стерилизован:</strong> {{ animal.sterilized or 'Нет' }}</p>
+                            </div>
+                            <button class="adopt-button" onclick="openModal('adopt-animal-modal-{{ animal.id }}')">Забрать домой</button>
+                            <a href="{{ url_for('donate') }}#animal-{{ animal.id }}" class="donate-button">Пожертвовать</a>
+                            {% if current_user.is_authenticated and current_user.role in ['admin', 'volunteer'] %}
+                            <form method="POST" action="{{ url_for('delete_animal', id=animal.id) }}">
+                                <button type="submit" class="delete-button">Удалить</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if current_user.is_authenticated and current_user.role in ['admin', 'volunteer'] %}
+                    <div class="modal" id="edit-animal-modal-{{ animal.id }}">
+                        <div class="modal-content">
+                            <h2>Редактировать животное</h2>
+                            <form method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="edit">
+                                <input type="hidden" name="animal_id" value="{{ animal.id }}">
+                                <input type="hidden" name="existing_photo_url" value="{{ animal.photo_url or '' }}">
+                                <label for="name-{{ animal.id }}">Имя</label>
+                                <input type="text" id="name-{{ animal.id }}" name="name" required value="{{ animal.name }}">
+                                <label for="description-{{ animal.id }}">Описание</label>
+                                <input type="text" id="description-{{ animal.id }}" name="description" value="{{ animal.description or '' }}" placeholder="Введите описание">
+                                <label for="status-{{ animal.id }}">Статус</label>
+                                <input type="text" id="status-{{ animal.id }}" name="status" required value="{{ animal.status }}" placeholder="Введите статус">
+                                <label for="age-{{ animal.id }}">Возраст</label>
+                                <input type="text" id="age-{{ animal.id }}" name="age" value="{{ animal.age or '' }}" placeholder="Введите возраст">
+                                <label for="gender-{{ animal.id }}">Пол</label>
+                                <input type="text" id="gender-{{ animal.id }}" name="gender" value="{{ animal.gender or '' }}" placeholder="Введите пол">
+                                <label for="vaccinated-{{ animal.id }}">Вакцинирован</label>
+                                <input type="text" id="vaccinated-{{ animal.id }}" name="vaccinated" value="{{ animal.vaccinated or '' }}" placeholder="Да/Нет">
+                                <label for="sterilized-{{ animal.id }}">Стерилизован</label>
+                                <input type="text" id="sterilized-{{ animal.id }}" name="sterilized" value="{{ animal.sterilized or '' }}" placeholder="Да/Нет">
+                                <label for="photo-{{ animal.id }}">Фото</label>
+                                <input type="file" id="photo-{{ animal.id }}" name="photo" accept="image/*">
+                                <div class="form-buttons">
+                                    <button type="submit" class="submit-button">Сохранить</button>
+                                    <button type="button" class="cancel-button" onclick="closeModal('edit-animal-modal-{{ animal.id }}')">Отмена</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="modal" id="adopt-animal-modal-{{ animal.id }}">
+                        <div class="modal-content">
+                            <h2>Забрать {{ animal.name }} домой</h2>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="adopt">
+                                <input type="hidden" name="animal_id" value="{{ animal.id }}">
+                                <label for="user_name-{{ animal.id }}">Ваше имя</label>
+                                <input type="text" id="user_name-{{ animal.id }}" name="user_name" required placeholder="Введите ваше имя">
+                                <label for="phone-{{ animal.id }}">Телефон</label>
+                                <input type="tel" id="phone-{{ animal.id }}" name="phone" required placeholder="Введите номер телефона">
+                                <label for="email-{{ animal.id }}">Email</label>
+                                <input type="email" id="email-{{ animal.id }}" name="email" required placeholder="Введите ваш email">
+                                <div class="form-buttons">
+                                    <button type="submit" class="submit-button">Отправить заявку</button>
+                                    <button type="button" class="cancel-button" onclick="closeModal('adopt-animal-modal-{{ animal.id }}')">Отмена</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>© 2025 Добрые Лапки. Все права защищены.</p>
+    </footer>
+    <script>
+        // Бургер-меню
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                menuToggle.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+                document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+            });
+            
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+            
+            mobileMenu.addEventListener('click', function(e) {
+                if (e.target === mobileMenu) {
+                    menuToggle.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        function openModal(modalId) {
+            var modal = document.getElementById(modalId);
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            var modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal(modal.id);
+                }
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93099858cd46b06e',t:'MTc0NDcwMDczMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
